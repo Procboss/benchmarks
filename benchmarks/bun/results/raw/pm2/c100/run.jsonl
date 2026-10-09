@@ -1,0 +1,5 @@
+{"manager":"pm2","repeat":1,"connections":100,"duration":60,"coldStartupMs":364,"startedAt":"2026-10-09T05:34:17Z","daemonPid":19243,"appPid":19255}
+{"manager":"pm2","repeat":2,"connections":100,"duration":60,"coldStartupMs":367,"startedAt":"2026-10-09T05:35:29Z","daemonPid":19391,"appPid":19403}
+{"manager":"pm2","repeat":3,"connections":100,"duration":60,"coldStartupMs":374,"startedAt":"2026-10-09T05:39:05Z","daemonPid":19785,"appPid":19797}
+{"manager":"pm2","repeat":4,"connections":100,"duration":60,"coldStartupMs":361,"startedAt":"2026-10-09T05:40:17Z","daemonPid":19919,"appPid":19931}
+{"manager":"pm2","repeat":5,"connections":100,"duration":60,"coldStartupMs":366,"startedAt":"2026-10-09T05:43:52Z","daemonPid":20312,"appPid":20324}

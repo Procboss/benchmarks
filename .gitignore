@@ -1,0 +1,8 @@
+# benchmark suite dependencies (installed per-suite with npm install)
+node_modules
+
+# OS noise
+.DS_Store
+
+# scratch from local manual runs
+*.log

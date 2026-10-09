@@ -1,0 +1,25 @@
+name: Benchmark harness tests
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  test:
+    name: bun test (hermetic)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+
+      # The harness tests are hermetic — pure-function fixtures + source
+      # contracts. No npm install: the modules under test use only node
+      # builtins, so the suite runs straight from checkout.
+      - name: Run tests
+        run: bun test
+        working-directory: benchmarks/bun
