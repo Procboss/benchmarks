@@ -9,14 +9,19 @@
 #
 # TWO MODES, same contract:
 #   fork    — 1 managed process (mgr_start_app)
-#   cluster — N managed processes sharing the port via SO_REUSEPORT
-#             (mgr_start_app_cluster; server.ts enables reusePort under
-#             BENCH_CLUSTER=1). N is the same for both managers
-#             (BENCH_INSTANCES). pboss runs its native process-based
-#             cluster (--instances N); pm2 cannot wrap a Bun app in
-#             node:cluster, so -i N runs N fork-mode instances with
-#             NODE_APP_INSTANCE set — the same process-based model, and
-#             the report says so openly.
+#   cluster — N managed Bun workers of the same server sharing one port
+#             via SO_REUSEPORT (mgr_start_app_cluster; server.ts enables
+#             reusePort under BENCH_CLUSTER=1). pboss only: its native
+#             process-based cluster (--instances N).
+#
+# pm2 cannot cluster a Bun app AT ALL: its cluster mode is node:cluster
+# inside the pm2 daemon — cluster.fork() always runs the daemon's own
+# runtime (Node) and ignores --interpreter, and pm2 only defaults to
+# cluster_mode when the interpreter path contains "node" (Common.js),
+# so `-i N --interpreter $BUN_BIN` silently downgrades to fork_mode.
+# Rather than dress fork-mode numbers up as a "cluster", the suite
+# RECORDS pm2 as not supported (mgr_supports_cluster +
+# write_cluster_unsupported) and never measures it in cluster mode.
 #
 # Isolation: each manager gets its own scratch home (PBOSS_HOME / PM2_HOME
 # under a mktemp dir), so the benchmark never touches a real install's
@@ -213,22 +218,46 @@ mgr_start_app() {
   [ $rc -eq 0 ] || { warn "start ($manager) failed: $out"; return 1; }
 }
 
-# Cluster-mode start: N workers of the SAME server.ts, same interpreter,
-# same port — BENCH_CLUSTER=1 makes server.ts bind with SO_REUSEPORT so
-# the N processes share the listener (the kernel balances connections
-# across them). pboss uses its native --instances; pm2's -i N cannot wrap
-# a Bun app in node:cluster and runs the N instances as fork-mode
-# processes — both are independent Bun processes on one shared port.
+# ── cluster-mode admission ─────────────────────────────────────────────────
+# Which managers can REALLY cluster an app in this suite. The bun suite's
+# honest answer for pm2 is NO (see the header): an unsupported manager is
+# recorded and reported as such, never measured — no fork numbers under a
+# cluster label. (The node suite in this repo answers YES for both —
+# pm2's node:cluster works for Node apps.)
+mgr_supports_cluster() {
+  case "$1" in
+    pboss) return 0 ;;   # native process-based cluster: --instances N
+    pm2)   return 1 ;;   # node:cluster cannot wrap a Bun app — NOT SUPPORTED
+    *)     return 1 ;;
+  esac
+}
+
+# Record a manager's cluster-mode absence — once per results dir, in the
+# machine-readable file summarize.mjs renders into the report.
+write_cluster_unsupported() {
+  local manager="$1" out
+  [ -d "$RAW_DIR/$manager" ] || mkdir -p "$RAW_DIR/$manager"
+  out="$RAW_DIR/$manager/cluster-unsupported.json"
+  [ -f "$out" ] && return 0
+  printf '{"manager":"%s","mode":"cluster","supported":false,"pm2Version":"%s","reason":"pm2 cluster mode (-i N) is node:cluster inside the pm2 daemon: cluster.fork() runs the daemon runtime (Node) and ignores --interpreter, and pm2 only defaults to cluster_mode when the interpreter path contains node — with --interpreter bun, -i N silently runs the instances in fork_mode (N plain processes, no cluster, no port sharing). Forcing exec_mode cluster_mode runs the workers under Node, not Bun.","verified":"live on this box: pm2 -i 2 --interpreter <bun> reports exec_mode fork_mode; a forced cluster_mode config spawns Node workers that crash-loop on Bun APIs"}\n' \
+    "$manager" "$(mgr_version pm2)" > "$out"
+  log "cluster: $manager does NOT support clustering a Bun app — recorded as not supported (not measured)"
+}
+
+# Cluster-mode start (supported managers only): N workers of the SAME
+# server.ts, same interpreter, same port — BENCH_CLUSTER=1 makes
+# server.ts bind with SO_REUSEPORT so the N processes share the listener
+# (the kernel balances connections across them). pboss uses its native
+# --instances.
 mgr_start_app_cluster() {
   local manager="$1" name="$2" instances="$3" out rc=0
+  mgr_supports_cluster "$manager" \
+    || { warn "mgr_start_app_cluster: '$manager' does not support cluster mode (caller must gate on mgr_supports_cluster)"; return 1; }
   case "$manager" in
     pboss)
       out="$(pboss_cli start "$BENCH_DIR/server.ts" --name "$name" \
              --interpreter "$BUN_BIN" --instances "$instances" \
              --env PORT="$BENCH_PORT" --env BENCH_CLUSTER=1 2>&1)" || rc=$? ;;
-    pm2)
-      out="$(PORT="$BENCH_PORT" BENCH_CLUSTER=1 pm2_cli start "$BENCH_DIR/server.ts" \
-             --name "$name" -i "$instances" --interpreter "$BUN_BIN" 2>&1)" || rc=$? ;;
   esac
   [ $rc -eq 0 ] || { warn "cluster start ($manager) failed: $out"; return 1; }
 }

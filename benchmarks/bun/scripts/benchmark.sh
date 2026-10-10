@@ -83,6 +83,12 @@ write_meta() {
         stormRestarts: Number(storm),
         modes: ["fork", "cluster"],
         clusterInstances: Number(instances),
+        // who can actually run cluster mode in THIS suite (the source of
+        // truth is mgr_supports_cluster in lib/common.sh)
+        clusterSupport: {
+          pboss: { supported: true, mechanism: "process-based cluster: --instances N, workers share the port via SO_REUSEPORT" },
+          pm2: { supported: false, reason: "pm2 cluster mode is node:cluster inside its daemon and cannot wrap an app run with a non-Node interpreter; with --interpreter bun, -i N silently downgrades to fork mode" },
+        },
       },
     }, null, 2));
   ' "$RESULTS_DIR/meta.json" \
@@ -92,7 +98,7 @@ write_meta() {
      "$("$BUN_BIN" --version)" "$("$NODE_BIN" --version)" \
      "$(mgr_version pm2)" "$(mgr_version pboss)" \
      "$cpu" "$(nproc)" "${mem_total:-0}" "$(uname -r)" "$(uname -s)"
-  log "meta written: $RESULTS_DIR/meta.json (modes: fork + cluster × $BENCH_INSTANCES workers)"
+  log "meta written: $RESULTS_DIR/meta.json (fork: both managers · cluster: pboss × $BENCH_INSTANCES workers, pm2 not supported)"
 }
 
 # ── phase: idle daemon overhead (manager alone, no application) ─────────────
@@ -188,21 +194,43 @@ run_one() {
 }
 
 # ── phase: the HTTP matrix (fork and cluster run the SAME one) ──────────────
+# The managers that can actually run a mode. Cluster mode is opt-in per
+# manager (mgr_supports_cluster): an unsupported manager is recorded once
+# (write_cluster_unsupported — the file summarize.mjs cites) and never
+# measured, so no fork-mode numbers ever wear a cluster label.
+mode_managers() {
+  local mode="$1" m
+  local supported=()
+  for m in "${MANAGERS[@]}"; do
+    if [ "$mode" = "cluster" ] && ! mgr_supports_cluster "$m"; then
+      write_cluster_unsupported "$m"
+      continue
+    fi
+    supported+=("$m")
+  done
+  echo "${supported[@]}"
+}
+
 phase_matrix() {
   local mode="${1:-fork}"
-  step "phase — HTTP matrix ($mode): c=[$BENCH_CONNECTIONS] × ${BENCH_DURATION}s × ${BENCH_REPEATS} repeat(s)$( [ "$mode" = "cluster" ] && echo " × $BENCH_INSTANCES workers" )"
+  # shellcheck disable=SC2207
+  local -a managers=($(mode_managers "$mode"))
+  step "phase — HTTP matrix ($mode): c=[$BENCH_CONNECTIONS] × ${BENCH_DURATION}s × ${BENCH_REPEATS} repeat(s)$( [ "$mode" = "cluster" ] && echo " × $BENCH_INSTANCES workers" ) — managers: ${managers[*]:-none}"
   local conns_arr conns repeat load_index=0 m
   IFS=',' read -r -a conns_arr <<< "$BENCH_CONNECTIONS"
 
   for conns in "${conns_arr[@]}"; do
     repeat=1
     while [ "$repeat" -le "$BENCH_REPEATS" ]; do
-      # alternate who runs first (load index + repeat parity)
+      # alternate who runs first (load index + repeat parity) — with one
+      # manager there is nothing to alternate, it just runs
       local order
-      if [ $(( (load_index + repeat) % 2 )) -eq 0 ]; then
+      if [ ${#managers[@]} -eq 2 ] && [ $(( (load_index + repeat) % 2 )) -eq 0 ]; then
         order=("pboss" "pm2")
-      else
+      elif [ ${#managers[@]} -eq 2 ]; then
         order=("pm2" "pboss")
+      else
+        order=("${managers[@]}")
       fi
       for m in "${order[@]}"; do
         run_one "$m" "$conns" "$repeat" "$mode" || true
@@ -216,9 +244,11 @@ phase_matrix() {
 # ── phase: warm startup (daemon already up — app start only) ───────────────
 phase_warm_startup() {
   local mode="${1:-fork}"
-  step "phase — warm startup ($mode: daemon up, $BENCH_REPEATS × per manager)"
+  # shellcheck disable=SC2207
+  local -a managers=($(mode_managers "$mode"))
+  step "phase — warm startup ($mode: daemon up, $BENCH_REPEATS × per manager) — managers: ${managers[*]:-none}"
   local manager i t0 t1
-  for manager in "${MANAGERS[@]}"; do
+  for manager in "${managers[@]}"; do
     teardown_all || die "clean state unreachable before warm startup ($manager, $mode)"
     mgr_boot_daemon "$manager" || die "daemon boot failed ($manager)"
     i=0

@@ -30,6 +30,9 @@
   .meta-table td:first-child, .meta-table th:first-child { width:11rem; }
   .pill { display:inline-block; background:#ddf4e4; color:var(--pboss); border-radius:999px;
           padding:.1em .7em; font-size:.78rem; font-weight:600; margin-left:.5em; }
+  .unsupported { border:1px solid #d4a72c66; background:#fff8c5; border-radius:8px;
+                 padding:12px 14px; margin:1rem 0 1.4rem; font-size:.92rem; }
+  .unsupported code { background:#fffdf0; }
   footer { margin-top:3rem; color:var(--sub); font-size:.85rem; border-top:1px solid var(--line); padding-top:1rem; }
 </style>
 </head>
@@ -41,13 +44,13 @@ load — the only difference is which process manager supervises it. This measur
 Both supervision models are covered: <strong>fork</strong> (one managed process) and
 <strong>cluster</strong> (2 workers).</p>
 <table class="meta-table">
-<tr><th>Date</th><td>2026-10-10T00:19:24.659Z</td></tr>
+<tr><th>Date</th><td>2026-10-10T05:20:33.265Z</td></tr>
 <tr><th>OS</th><td>Linux — kernel 5.10.134-013.15.kangaroo.al8.x86_64</td></tr>
 <tr><th>CPU</th><td>2 × Intel(R) Xeon(R) Processor</td></tr>
 <tr><th>Memory</th><td>4041 MB</td></tr>
 <tr><th>Versions</th><td>bun 1.3.14 · node v24.21.0 · pm2 5.4.3 · pboss pboss v1.7.5</td></tr>
 <tr><th>Profile</th><td>standard — loads 10/100/500 conns, 60s each, 10s warmup, 5 repeat(s) per manager</td></tr>
-<tr><th>Cluster</th><td>2 workers per manager (SO_REUSEPORT)</td></tr>
+<tr><th>Cluster</th><td>2 workers · pboss (SO_REUSEPORT) · pm2: not supported</td></tr>
 </table>
 <h2>Methodology</h2><ul>
 <li>Every measured run starts from a verified-clean state: app deleted, daemon killed,
@@ -63,11 +66,13 @@ HTTP measurements.</li>
 <li><strong>Same-machine caveat:</strong> the load generator shares the CPUs with the
 servers; absolute numbers are specific to this box — compare the two columns, don't
 quote them as platform throughput.</li>
-<li><strong>Cluster mode</strong> runs the same matrix with N workers per manager:
-pboss uses its native process-based cluster (<code>--instances N</code>); pm2 cannot wrap a
-Bun app in <code>node:cluster</code>, so <code>-i N</code> runs the N instances as fork-mode
-processes — the same independent-Bun-processes-on-one-<code>SO_REUSEPORT</code>-port model on
-both sides, and the only variable stays the manager.</li>
+<li><strong>Cluster mode</strong> runs the same matrix for every manager that can
+actually cluster a Bun app: pboss (its native process-based cluster,
+<code>--instances N</code>, workers sharing one <code>SO_REUSEPORT</code> port). pm2
+<strong>cannot</strong> — its cluster mode is <code>node:cluster</code> inside the pm2 daemon and
+cannot wrap an app run with a non-Node interpreter — so it is reported as
+<strong>not supported</strong> in the cluster section, never measured with fork-mode
+numbers wearing a cluster label.</li>
 </ul>
 <p class="note">Winner names the column that scored better; the percentage beside it is the
 relative difference (pboss − pm2) / pm2 × 100 — positive means pboss scored the higher
@@ -79,23 +84,23 @@ level reads “tie”.</p>
 <table>
 <thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th class="num">Winner</th></tr></thead>
 <tbody>
-<tr><td>Average requests/sec</td><td class="num">73509.0</td><td class="num">71387.1</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">-2.9%</span></td></tr>
-<tr><td>Average latency (mean)</td><td class="num">0.75 ms</td><td class="num">0.73 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-2.7%</span></td></tr>
-<tr><td>Median p50 latency</td><td class="num">0.00 ms</td><td class="num">0.00 ms</td><td class="win">—</td></tr>
+<tr><td>Average requests/sec</td><td class="num">70233.8</td><td class="num">72411.3</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">+3.1%</span></td></tr>
+<tr><td>Average latency (mean)</td><td class="num">1.08 ms</td><td class="num">0.90 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-16.7%</span></td></tr>
+<tr><td>Median p50 latency</td><td class="num">1.00 ms</td><td class="num">1.00 ms</td><td class="win"><span class="w w-tie">tie</span></td></tr>
 <tr><td>Median p95 latency</td><td class="num">—</td><td class="num">—</td><td class="win">—</td></tr>
 <tr><td>Median p99 latency</td><td class="num">25.00 ms</td><td class="num">25.00 ms</td><td class="win"><span class="w w-tie">tie</span></td></tr>
-<tr><td>Average CPU usage (tree)</td><td class="num">67.2 %</td><td class="num">67.0 %</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-0.2%</span></td></tr>
-<tr><td>Average memory (tree)</td><td class="num">118.9 MB</td><td class="num">117.2 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-1.4%</span></td></tr>
-<tr><td>Average cold startup</td><td class="num">367.6 ms</td><td class="num">335.4 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-8.8%</span></td></tr>
+<tr><td>Average CPU usage (tree)</td><td class="num">66.9 %</td><td class="num">67.3 %</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+0.6%</span></td></tr>
+<tr><td>Average memory (tree)</td><td class="num">119.3 MB</td><td class="num">116.8 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-2.1%</span></td></tr>
+<tr><td>Average cold startup</td><td class="num">384.4 ms</td><td class="num">332.6 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-13.5%</span></td></tr>
 </tbody>
 </table>
 <h3>Load: 10 connections</h3>
 <table>
 <thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th class="num">Winner</th></tr></thead>
 <tbody>
-<tr><td>Median requests/sec</td><td class="num">75152.0</td><td class="num">74461.1</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">-0.9%</span></td></tr>
-<tr><td>Mean requests/sec</td><td class="num">75556.3</td><td class="num">73923.9</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">-2.2%</span></td></tr>
-<tr><td>RPS stdev (variability)</td><td class="num">2606.4</td><td class="num">1313.4</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-49.6%</span></td></tr>
+<tr><td>Median requests/sec</td><td class="num">75604.5</td><td class="num">74185.3</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">-1.9%</span></td></tr>
+<tr><td>Mean requests/sec</td><td class="num">76586.9</td><td class="num">74942.0</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">-2.1%</span></td></tr>
+<tr><td>RPS stdev (variability)</td><td class="num">2759.9</td><td class="num">2344.4</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-15.1%</span></td></tr>
 <tr><td>Average latency (mean)</td><td class="num">0.04 ms</td><td class="num">0.04 ms</td><td class="win"><span class="w w-tie">tie</span></td></tr>
 <tr><td>Median p50 latency</td><td class="num">0.00 ms</td><td class="num">0.00 ms</td><td class="win">—</td></tr>
 <tr><td>Median p90 latency</td><td class="num">0.00 ms</td><td class="num">0.00 ms</td><td class="win">—</td></tr>
@@ -104,175 +109,184 @@ level reads “tie”.</p>
 <tr><td>Errors (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
 <tr><td>Timeouts (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
 <tr><td>Non-2xx (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
-<tr><td>Avg CPU % of tree</td><td class="num">68.7</td><td class="num">68.6</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-0.2%</span></td></tr>
-<tr><td>Median CPU % of tree</td><td class="num">69.6</td><td class="num">70.0</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+0.6%</span></td></tr>
-<tr><td>Peak CPU % of tree</td><td class="num">74.8</td><td class="num">76.4</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+2.1%</span></td></tr>
-<tr><td>Avg tree memory</td><td class="num">119.1 MB</td><td class="num">116.9 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-1.9%</span></td></tr>
-<tr><td>Median tree memory</td><td class="num">119.1 MB</td><td class="num">116.9 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-1.9%</span></td></tr>
-<tr><td>Cold startup (median)</td><td class="num">372.0 ms</td><td class="num">330.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-11.3%</span></td></tr>
+<tr><td>Avg CPU % of tree</td><td class="num">68.6</td><td class="num">69.3</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+0.9%</span></td></tr>
+<tr><td>Median CPU % of tree</td><td class="num">70.0</td><td class="num">70.0</td><td class="win"><span class="w w-tie">tie</span></td></tr>
+<tr><td>Peak CPU % of tree</td><td class="num">75.2</td><td class="num">76.0</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+1.1%</span></td></tr>
+<tr><td>Avg tree memory</td><td class="num">119.6 MB</td><td class="num">117.3 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-2.0%</span></td></tr>
+<tr><td>Median tree memory</td><td class="num">119.6 MB</td><td class="num">117.3 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-1.9%</span></td></tr>
+<tr><td>Cold startup (median)</td><td class="num">365.0 ms</td><td class="num">331.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-9.3%</span></td></tr>
 </tbody>
 </table>
-<p class="note">Runs: 5 pm2 / 5 pboss. RPS per run — pm2 [73,810, 76,685, 79,396, 75,152, 72,738] · pboss [74,978, 75,085, 72,974, 72,121, 74,461]</p>
+<p class="note">Runs: 5 pm2 / 5 pboss. RPS per run — pm2 [80,769, 77,605, 73,458, 75,605, 75,498] · pboss [76,465, 74,185, 72,259, 73,657, 78,143]</p>
 <h3>Load: 100 connections</h3>
 <table>
 <thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th class="num">Winner</th></tr></thead>
 <tbody>
-<tr><td>Median requests/sec</td><td class="num">73422.9</td><td class="num">73384.3</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">-0.1%</span></td></tr>
-<tr><td>Mean requests/sec</td><td class="num">73509.0</td><td class="num">71387.1</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">-2.9%</span></td></tr>
-<tr><td>RPS stdev (variability)</td><td class="num">934.6</td><td class="num">3528.5</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+277.5%</span></td></tr>
-<tr><td>Average latency (mean)</td><td class="num">0.75 ms</td><td class="num">0.73 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-2.7%</span></td></tr>
-<tr><td>Median p50 latency</td><td class="num">0.00 ms</td><td class="num">0.00 ms</td><td class="win">—</td></tr>
+<tr><td>Median requests/sec</td><td class="num">68789.3</td><td class="num">71714.4</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">+4.3%</span></td></tr>
+<tr><td>Mean requests/sec</td><td class="num">70233.8</td><td class="num">72411.3</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">+3.1%</span></td></tr>
+<tr><td>RPS stdev (variability)</td><td class="num">3275.4</td><td class="num">2101.5</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-35.8%</span></td></tr>
+<tr><td>Average latency (mean)</td><td class="num">1.08 ms</td><td class="num">0.90 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-16.7%</span></td></tr>
+<tr><td>Median p50 latency</td><td class="num">1.00 ms</td><td class="num">1.00 ms</td><td class="win"><span class="w w-tie">tie</span></td></tr>
 <tr><td>Median p90 latency</td><td class="num">1.00 ms</td><td class="num">1.00 ms</td><td class="win"><span class="w w-tie">tie</span></td></tr>
 <tr><td>Median p95 latency</td><td class="num">—</td><td class="num">—</td><td class="win">—</td></tr>
 <tr><td>Median p99 latency</td><td class="num">25.00 ms</td><td class="num">25.00 ms</td><td class="win"><span class="w w-tie">tie</span></td></tr>
 <tr><td>Errors (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
 <tr><td>Timeouts (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
 <tr><td>Non-2xx (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
-<tr><td>Avg CPU % of tree</td><td class="num">67.2</td><td class="num">67.0</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-0.2%</span></td></tr>
-<tr><td>Median CPU % of tree</td><td class="num">68.0</td><td class="num">67.2</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-1.2%</span></td></tr>
-<tr><td>Peak CPU % of tree</td><td class="num">71.2</td><td class="num">72.8</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+2.2%</span></td></tr>
-<tr><td>Avg tree memory</td><td class="num">118.9 MB</td><td class="num">117.2 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-1.4%</span></td></tr>
-<tr><td>Median tree memory</td><td class="num">118.9 MB</td><td class="num">117.2 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-1.5%</span></td></tr>
-<tr><td>Cold startup (median)</td><td class="num">371.0 ms</td><td class="num">334.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-10.0%</span></td></tr>
+<tr><td>Avg CPU % of tree</td><td class="num">66.9</td><td class="num">67.3</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+0.6%</span></td></tr>
+<tr><td>Median CPU % of tree</td><td class="num">68.0</td><td class="num">68.0</td><td class="win"><span class="w w-tie">tie</span></td></tr>
+<tr><td>Peak CPU % of tree</td><td class="num">74.0</td><td class="num">72.4</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-2.2%</span></td></tr>
+<tr><td>Avg tree memory</td><td class="num">119.3 MB</td><td class="num">116.8 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-2.1%</span></td></tr>
+<tr><td>Median tree memory</td><td class="num">119.3 MB</td><td class="num">116.9 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-2.1%</span></td></tr>
+<tr><td>Cold startup (median)</td><td class="num">380.0 ms</td><td class="num">331.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-12.9%</span></td></tr>
 </tbody>
 </table>
-<p class="note">Runs: 5 pm2 / 5 pboss. RPS per run — pm2 [74,182, 72,642, 72,591, 74,708, 73,423] · pboss [69,578, 73,804, 74,166, 66,004, 73,384]</p>
+<p class="note">Runs: 5 pm2 / 5 pboss. RPS per run — pm2 [68,207, 68,514, 68,789, 69,645, 76,014] · pboss [71,103, 75,572, 71,714, 70,283, 73,384]</p>
 <h3>Load: 500 connections</h3>
 <table>
 <thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th class="num">Winner</th></tr></thead>
 <tbody>
-<tr><td>Median requests/sec</td><td class="num">64767.2</td><td class="num">68741.3</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">+6.1%</span></td></tr>
-<tr><td>Mean requests/sec</td><td class="num">65674.6</td><td class="num">68479.3</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">+4.3%</span></td></tr>
-<tr><td>RPS stdev (variability)</td><td class="num">3025.6</td><td class="num">1622.3</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-46.4%</span></td></tr>
-<tr><td>Average latency (mean)</td><td class="num">7.31 ms</td><td class="num">6.88 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-5.9%</span></td></tr>
-<tr><td>Median p50 latency</td><td class="num">5.00 ms</td><td class="num">5.00 ms</td><td class="win"><span class="w w-tie">tie</span></td></tr>
-<tr><td>Median p90 latency</td><td class="num">8.00 ms</td><td class="num">7.00 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-12.5%</span></td></tr>
+<tr><td>Median requests/sec</td><td class="num">65634.7</td><td class="num">63283.5</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">-3.6%</span></td></tr>
+<tr><td>Mean requests/sec</td><td class="num">65440.0</td><td class="num">64514.2</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">-1.4%</span></td></tr>
+<tr><td>RPS stdev (variability)</td><td class="num">1810.0</td><td class="num">3079.9</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+70.2%</span></td></tr>
+<tr><td>Average latency (mean)</td><td class="num">7.18 ms</td><td class="num">7.47 ms</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+4.0%</span></td></tr>
+<tr><td>Median p50 latency</td><td class="num">5.00 ms</td><td class="num">6.00 ms</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+20.0%</span></td></tr>
+<tr><td>Median p90 latency</td><td class="num">8.00 ms</td><td class="num">8.00 ms</td><td class="win"><span class="w w-tie">tie</span></td></tr>
 <tr><td>Median p95 latency</td><td class="num">—</td><td class="num">—</td><td class="win">—</td></tr>
-<tr><td>Median p99 latency</td><td class="num">33.00 ms</td><td class="num">32.00 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-3.0%</span></td></tr>
+<tr><td>Median p99 latency</td><td class="num">33.00 ms</td><td class="num">33.00 ms</td><td class="win"><span class="w w-tie">tie</span></td></tr>
 <tr><td>Errors (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
 <tr><td>Timeouts (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
 <tr><td>Non-2xx (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
-<tr><td>Avg CPU % of tree</td><td class="num">64.1</td><td class="num">64.9</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+1.2%</span></td></tr>
-<tr><td>Median CPU % of tree</td><td class="num">64.8</td><td class="num">65.4</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+0.9%</span></td></tr>
-<tr><td>Peak CPU % of tree</td><td class="num">70.4</td><td class="num">71.2</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+1.1%</span></td></tr>
-<tr><td>Avg tree memory</td><td class="num">119.5 MB</td><td class="num">116.1 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-2.9%</span></td></tr>
-<tr><td>Median tree memory</td><td class="num">119.5 MB</td><td class="num">116.1 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-2.9%</span></td></tr>
-<tr><td>Cold startup (median)</td><td class="num">367.0 ms</td><td class="num">334.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-9.0%</span></td></tr>
+<tr><td>Avg CPU % of tree</td><td class="num">64.1</td><td class="num">64.0</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-0.2%</span></td></tr>
+<tr><td>Median CPU % of tree</td><td class="num">64.4</td><td class="num">64.4</td><td class="win"><span class="w w-tie">tie</span></td></tr>
+<tr><td>Peak CPU % of tree</td><td class="num">76.0</td><td class="num">70.8</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-6.8%</span></td></tr>
+<tr><td>Avg tree memory</td><td class="num">119.5 MB</td><td class="num">117.2 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-1.9%</span></td></tr>
+<tr><td>Median tree memory</td><td class="num">119.5 MB</td><td class="num">117.2 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-1.9%</span></td></tr>
+<tr><td>Cold startup (median)</td><td class="num">375.0 ms</td><td class="num">335.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-10.7%</span></td></tr>
 </tbody>
 </table>
-<p class="note">Runs: 5 pm2 / 5 pboss. RPS per run — pm2 [69,742, 62,955, 63,030, 64,767, 67,879] · pboss [70,261, 68,741, 67,333, 66,362, 69,699]</p>
+<p class="note">Runs: 5 pm2 / 5 pboss. RPS per run — pm2 [67,463, 66,615, 64,702, 65,635, 62,785] · pboss [62,392, 62,539, 64,550, 69,807, 63,283]</p>
 <h2>Cluster mode<span class="pill">2 workers</span></h2>
-<p>Each manager supervises the SAME N Bun workers of the same <code>server.ts</code>, all
-binding the same port through <code>SO_REUSEPORT</code> (the kernel balances connections
-across them). pboss clusters with <code>--instances N</code>; pm2's <code>-i N</code> cannot wrap
-a Bun app in <code>node:cluster</code> and instead runs the N instances as fork-mode
-processes — the worker count and the sharing mechanism are identical either way.</p>
+<p>pboss supervises N Bun workers of the same <code>server.ts</code>, all binding the
+same port through <code>SO_REUSEPORT</code> (the kernel balances connections across
+them) — its native process-based cluster, <code>--instances N</code>.</p>
+<div class="unsupported">
+<strong>pm2: cluster mode — not supported (Bun apps).</strong>
+PM2's cluster mode is implemented with <code>node:cluster</code> inside its Node daemon:
+<code>cluster.fork()</code> always runs the daemon's own runtime and ignores
+<code>--interpreter</code>, and pm2 only selects cluster mode when the interpreter path
+contains "node" — so <code>pm2 start -i N --interpreter bun</code> silently runs the
+instances in <strong>fork mode</strong> (<code>exec_mode: fork_mode</code>, N plain processes, no
+port sharing), and forcing <code>exec_mode: "cluster_mode"</code> runs the workers under
+<strong>Node</strong>, not Bun. Rather than publish fork-mode numbers under a cluster label,
+this benchmark records pm2 as not supported and measures only pboss in this mode.
+(The <code>node</code> suite in this repo runs both managers' cluster modes.)</div>
 <h3>Headline — 100 connections</h3>
 <table>
 <thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th class="num">Winner</th></tr></thead>
 <tbody>
-<tr><td>Average requests/sec</td><td class="num">74886.0</td><td class="num">73433.5</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">-1.9%</span></td></tr>
-<tr><td>Average latency (mean)</td><td class="num">0.64 ms</td><td class="num">0.74 ms</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+15.6%</span></td></tr>
-<tr><td>Median p50 latency</td><td class="num">0.00 ms</td><td class="num">0.00 ms</td><td class="win">—</td></tr>
+<tr><td>Average requests/sec</td><td class="num">—</td><td class="num">69856.5</td><td class="win">—</td></tr>
+<tr><td>Average latency (mean)</td><td class="num">—</td><td class="num">0.95 ms</td><td class="win">—</td></tr>
+<tr><td>Median p50 latency</td><td class="num">—</td><td class="num">1.00 ms</td><td class="win">—</td></tr>
 <tr><td>Median p95 latency</td><td class="num">—</td><td class="num">—</td><td class="win">—</td></tr>
-<tr><td>Median p99 latency</td><td class="num">25.00 ms</td><td class="num">25.00 ms</td><td class="win"><span class="w w-tie">tie</span></td></tr>
-<tr><td>Average CPU usage (tree)</td><td class="num">70.5 %</td><td class="num">70.3 %</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-0.3%</span></td></tr>
-<tr><td>Average memory (tree)</td><td class="num">165.0 MB</td><td class="num">165.3 MB</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+0.2%</span></td></tr>
-<tr><td>Average cold startup</td><td class="num">394.4 ms</td><td class="num">464.2 ms</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+17.7%</span></td></tr>
+<tr><td>Median p99 latency</td><td class="num">—</td><td class="num">25.00 ms</td><td class="win">—</td></tr>
+<tr><td>Average CPU usage (tree)</td><td class="num">—</td><td class="num">70.0 %</td><td class="win">—</td></tr>
+<tr><td>Average memory (tree)</td><td class="num">—</td><td class="num">164.7 MB</td><td class="win">—</td></tr>
+<tr><td>Average cold startup</td><td class="num">—</td><td class="num">460.0 ms</td><td class="win">—</td></tr>
 </tbody>
 </table>
 <h3>Load: 10 connections</h3>
 <table>
 <thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th class="num">Winner</th></tr></thead>
 <tbody>
-<tr><td>Median requests/sec</td><td class="num">72169.3</td><td class="num">72314.1</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">+0.2%</span></td></tr>
-<tr><td>Mean requests/sec</td><td class="num">72483.5</td><td class="num">70422.8</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">-2.8%</span></td></tr>
-<tr><td>RPS stdev (variability)</td><td class="num">2115.0</td><td class="num">4664.8</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+120.6%</span></td></tr>
-<tr><td>Average latency (mean)</td><td class="num">0.04 ms</td><td class="num">0.04 ms</td><td class="win"><span class="w w-tie">tie</span></td></tr>
-<tr><td>Median p50 latency</td><td class="num">0.00 ms</td><td class="num">0.00 ms</td><td class="win">—</td></tr>
-<tr><td>Median p90 latency</td><td class="num">0.00 ms</td><td class="num">0.00 ms</td><td class="win">—</td></tr>
+<tr><td>Median requests/sec</td><td class="num">—</td><td class="num">68210.4</td><td class="win">—</td></tr>
+<tr><td>Mean requests/sec</td><td class="num">—</td><td class="num">68867.2</td><td class="win">—</td></tr>
+<tr><td>RPS stdev (variability)</td><td class="num">—</td><td class="num">2738.8</td><td class="win">—</td></tr>
+<tr><td>Average latency (mean)</td><td class="num">—</td><td class="num">0.05 ms</td><td class="win">—</td></tr>
+<tr><td>Median p50 latency</td><td class="num">—</td><td class="num">0.00 ms</td><td class="win">—</td></tr>
+<tr><td>Median p90 latency</td><td class="num">—</td><td class="num">0.00 ms</td><td class="win">—</td></tr>
 <tr><td>Median p95 latency</td><td class="num">—</td><td class="num">—</td><td class="win">—</td></tr>
-<tr><td>Median p99 latency</td><td class="num">0.00 ms</td><td class="num">0.00 ms</td><td class="win">—</td></tr>
-<tr><td>Errors (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
-<tr><td>Timeouts (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
-<tr><td>Non-2xx (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
-<tr><td>Avg CPU % of tree</td><td class="num">73.0</td><td class="num">73.1</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+0.1%</span></td></tr>
-<tr><td>Median CPU % of tree</td><td class="num">74.0</td><td class="num">74.0</td><td class="win"><span class="w w-tie">tie</span></td></tr>
-<tr><td>Peak CPU % of tree</td><td class="num">81.6</td><td class="num">82.8</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+1.5%</span></td></tr>
-<tr><td>Avg tree memory</td><td class="num">164.3 MB</td><td class="num">165.0 MB</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+0.4%</span></td></tr>
-<tr><td>Median tree memory</td><td class="num">164.4 MB</td><td class="num">165.1 MB</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+0.4%</span></td></tr>
-<tr><td>Cold startup (median)</td><td class="num">385.0 ms</td><td class="num">460.0 ms</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+19.5%</span></td></tr>
+<tr><td>Median p99 latency</td><td class="num">—</td><td class="num">0.00 ms</td><td class="win">—</td></tr>
+<tr><td>Errors (total)</td><td class="num">—</td><td class="num">0</td><td class="win">—</td></tr>
+<tr><td>Timeouts (total)</td><td class="num">—</td><td class="num">0</td><td class="win">—</td></tr>
+<tr><td>Non-2xx (total)</td><td class="num">—</td><td class="num">0</td><td class="win">—</td></tr>
+<tr><td>Avg CPU % of tree</td><td class="num">—</td><td class="num">73.2</td><td class="win">—</td></tr>
+<tr><td>Median CPU % of tree</td><td class="num">—</td><td class="num">74.0</td><td class="win">—</td></tr>
+<tr><td>Peak CPU % of tree</td><td class="num">—</td><td class="num">83.2</td><td class="win">—</td></tr>
+<tr><td>Avg tree memory</td><td class="num">—</td><td class="num">165.4 MB</td><td class="win">—</td></tr>
+<tr><td>Median tree memory</td><td class="num">—</td><td class="num">165.5 MB</td><td class="win">—</td></tr>
+<tr><td>Cold startup (median)</td><td class="num">—</td><td class="num">462.0 ms</td><td class="win">—</td></tr>
 </tbody>
 </table>
-<p class="note">Runs: 5 pm2 / 5 pboss. RPS per run — pm2 [70,737, 74,985, 72,169, 74,312, 70,215] · pboss [73,935, 70,681, 62,346, 72,838, 72,314]</p>
+<p class="note">Runs: 0 pm2 / 5 pboss. RPS per run — pm2 [] · pboss [72,873, 65,541, 67,748, 68,210, 69,964]</p>
 <h3>Load: 100 connections</h3>
 <table>
 <thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th class="num">Winner</th></tr></thead>
 <tbody>
-<tr><td>Median requests/sec</td><td class="num">75733.3</td><td class="num">73640.3</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">-2.8%</span></td></tr>
-<tr><td>Mean requests/sec</td><td class="num">74886.0</td><td class="num">73433.5</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">-1.9%</span></td></tr>
-<tr><td>RPS stdev (variability)</td><td class="num">2270.0</td><td class="num">2419.6</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+6.6%</span></td></tr>
-<tr><td>Average latency (mean)</td><td class="num">0.64 ms</td><td class="num">0.74 ms</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+15.6%</span></td></tr>
-<tr><td>Median p50 latency</td><td class="num">0.00 ms</td><td class="num">0.00 ms</td><td class="win">—</td></tr>
-<tr><td>Median p90 latency</td><td class="num">1.00 ms</td><td class="num">1.00 ms</td><td class="win"><span class="w w-tie">tie</span></td></tr>
+<tr><td>Median requests/sec</td><td class="num">—</td><td class="num">70108.0</td><td class="win">—</td></tr>
+<tr><td>Mean requests/sec</td><td class="num">—</td><td class="num">69856.5</td><td class="win">—</td></tr>
+<tr><td>RPS stdev (variability)</td><td class="num">—</td><td class="num">4438.2</td><td class="win">—</td></tr>
+<tr><td>Average latency (mean)</td><td class="num">—</td><td class="num">0.95 ms</td><td class="win">—</td></tr>
+<tr><td>Median p50 latency</td><td class="num">—</td><td class="num">1.00 ms</td><td class="win">—</td></tr>
+<tr><td>Median p90 latency</td><td class="num">—</td><td class="num">1.00 ms</td><td class="win">—</td></tr>
 <tr><td>Median p95 latency</td><td class="num">—</td><td class="num">—</td><td class="win">—</td></tr>
-<tr><td>Median p99 latency</td><td class="num">25.00 ms</td><td class="num">25.00 ms</td><td class="win"><span class="w w-tie">tie</span></td></tr>
-<tr><td>Errors (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
-<tr><td>Timeouts (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
-<tr><td>Non-2xx (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
-<tr><td>Avg CPU % of tree</td><td class="num">70.5</td><td class="num">70.3</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-0.3%</span></td></tr>
-<tr><td>Median CPU % of tree</td><td class="num">71.2</td><td class="num">70.8</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-0.6%</span></td></tr>
-<tr><td>Peak CPU % of tree</td><td class="num">78.4</td><td class="num">76.8</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-2.0%</span></td></tr>
-<tr><td>Avg tree memory</td><td class="num">165.0 MB</td><td class="num">165.3 MB</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+0.2%</span></td></tr>
-<tr><td>Median tree memory</td><td class="num">165.0 MB</td><td class="num">165.4 MB</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+0.2%</span></td></tr>
-<tr><td>Cold startup (median)</td><td class="num">393.0 ms</td><td class="num">464.0 ms</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+18.1%</span></td></tr>
+<tr><td>Median p99 latency</td><td class="num">—</td><td class="num">25.00 ms</td><td class="win">—</td></tr>
+<tr><td>Errors (total)</td><td class="num">—</td><td class="num">0</td><td class="win">—</td></tr>
+<tr><td>Timeouts (total)</td><td class="num">—</td><td class="num">0</td><td class="win">—</td></tr>
+<tr><td>Non-2xx (total)</td><td class="num">—</td><td class="num">0</td><td class="win">—</td></tr>
+<tr><td>Avg CPU % of tree</td><td class="num">—</td><td class="num">70.0</td><td class="win">—</td></tr>
+<tr><td>Median CPU % of tree</td><td class="num">—</td><td class="num">70.4</td><td class="win">—</td></tr>
+<tr><td>Peak CPU % of tree</td><td class="num">—</td><td class="num">77.6</td><td class="win">—</td></tr>
+<tr><td>Avg tree memory</td><td class="num">—</td><td class="num">164.7 MB</td><td class="win">—</td></tr>
+<tr><td>Median tree memory</td><td class="num">—</td><td class="num">164.7 MB</td><td class="win">—</td></tr>
+<tr><td>Cold startup (median)</td><td class="num">—</td><td class="num">459.0 ms</td><td class="win">—</td></tr>
 </tbody>
 </table>
-<p class="note">Runs: 5 pm2 / 5 pboss. RPS per run — pm2 [74,397, 75,733, 76,486, 71,152, 76,662] · pboss [73,640, 75,812, 70,397, 71,611, 75,707]</p>
+<p class="note">Runs: 0 pm2 / 5 pboss. RPS per run — pm2 [] · pboss [70,108, 65,862, 66,146, 70,325, 76,841]</p>
 <h3>Load: 500 connections</h3>
 <table>
 <thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th class="num">Winner</th></tr></thead>
 <tbody>
-<tr><td>Median requests/sec</td><td class="num">68056.0</td><td class="num">65982.7</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">-3.0%</span></td></tr>
-<tr><td>Mean requests/sec</td><td class="num">66760.4</td><td class="num">65807.3</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">-1.4%</span></td></tr>
-<tr><td>RPS stdev (variability)</td><td class="num">3705.7</td><td class="num">2974.0</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-19.7%</span></td></tr>
-<tr><td>Average latency (mean)</td><td class="num">6.96 ms</td><td class="num">7.22 ms</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+3.7%</span></td></tr>
-<tr><td>Median p50 latency</td><td class="num">5.00 ms</td><td class="num">5.00 ms</td><td class="win"><span class="w w-tie">tie</span></td></tr>
-<tr><td>Median p90 latency</td><td class="num">7.00 ms</td><td class="num">8.00 ms</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+14.3%</span></td></tr>
+<tr><td>Median requests/sec</td><td class="num">—</td><td class="num">62368.5</td><td class="win">—</td></tr>
+<tr><td>Mean requests/sec</td><td class="num">—</td><td class="num">62988.0</td><td class="win">—</td></tr>
+<tr><td>RPS stdev (variability)</td><td class="num">—</td><td class="num">2637.1</td><td class="win">—</td></tr>
+<tr><td>Average latency (mean)</td><td class="num">—</td><td class="num">7.58 ms</td><td class="win">—</td></tr>
+<tr><td>Median p50 latency</td><td class="num">—</td><td class="num">6.00 ms</td><td class="win">—</td></tr>
+<tr><td>Median p90 latency</td><td class="num">—</td><td class="num">9.00 ms</td><td class="win">—</td></tr>
 <tr><td>Median p95 latency</td><td class="num">—</td><td class="num">—</td><td class="win">—</td></tr>
-<tr><td>Median p99 latency</td><td class="num">32.00 ms</td><td class="num">33.00 ms</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+3.1%</span></td></tr>
-<tr><td>Errors (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
-<tr><td>Timeouts (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
-<tr><td>Non-2xx (total)</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr>
-<tr><td>Avg CPU % of tree</td><td class="num">66.1</td><td class="num">66.4</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+0.5%</span></td></tr>
-<tr><td>Median CPU % of tree</td><td class="num">66.8</td><td class="num">66.8</td><td class="win"><span class="w w-tie">tie</span></td></tr>
-<tr><td>Peak CPU % of tree</td><td class="num">72.4</td><td class="num">74.0</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+2.2%</span></td></tr>
-<tr><td>Avg tree memory</td><td class="num">163.8 MB</td><td class="num">164.3 MB</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+0.3%</span></td></tr>
-<tr><td>Median tree memory</td><td class="num">163.8 MB</td><td class="num">164.3 MB</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+0.3%</span></td></tr>
-<tr><td>Cold startup (median)</td><td class="num">399.0 ms</td><td class="num">457.0 ms</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+14.5%</span></td></tr>
+<tr><td>Median p99 latency</td><td class="num">—</td><td class="num">34.00 ms</td><td class="win">—</td></tr>
+<tr><td>Errors (total)</td><td class="num">—</td><td class="num">0</td><td class="win">—</td></tr>
+<tr><td>Timeouts (total)</td><td class="num">—</td><td class="num">0</td><td class="win">—</td></tr>
+<tr><td>Non-2xx (total)</td><td class="num">—</td><td class="num">0</td><td class="win">—</td></tr>
+<tr><td>Avg CPU % of tree</td><td class="num">—</td><td class="num">66.0</td><td class="win">—</td></tr>
+<tr><td>Median CPU % of tree</td><td class="num">—</td><td class="num">66.4</td><td class="win">—</td></tr>
+<tr><td>Peak CPU % of tree</td><td class="num">—</td><td class="num">77.6</td><td class="win">—</td></tr>
+<tr><td>Avg tree memory</td><td class="num">—</td><td class="num">164.8 MB</td><td class="win">—</td></tr>
+<tr><td>Median tree memory</td><td class="num">—</td><td class="num">164.8 MB</td><td class="win">—</td></tr>
+<tr><td>Cold startup (median)</td><td class="num">—</td><td class="num">456.0 ms</td><td class="win">—</td></tr>
 </tbody>
 </table>
-<p class="note">Runs: 5 pm2 / 5 pboss. RPS per run — pm2 [61,026, 68,056, 70,195, 69,270, 65,255] · pboss [62,235, 65,983, 69,471, 63,538, 67,810]</p>
+<p class="note">Runs: 0 pm2 / 5 pboss. RPS per run — pm2 [] · pboss [63,335, 67,314, 60,527, 61,395, 62,369]</p>
 <h2>Startup time</h2>
 <p>Cold = daemon down, start command → first 200 from <code>/health</code> (daemon boot
 included; median over the load runs). Warm = daemon already up.</p>
-<table><thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th>Winner</th></tr></thead><tbody><tr><td>Cold startup, fork (median of medians)</td><td class="num">371.0 ms</td><td class="num">334.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-10.0%</span></td></tr><tr><td>Warm startup, fork (median)</td><td class="num">214.0 ms</td><td class="num">122.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-43.0%</span></td></tr><tr><td>Warm startup, fork (max)</td><td class="num">267.0 ms</td><td class="num">132.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-50.6%</span></td></tr><tr><td>Cold startup, cluster (median of medians)</td><td class="num">393.0 ms</td><td class="num">460.0 ms</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+17.0%</span></td></tr><tr><td>Warm startup, cluster (median)</td><td class="num">190.0 ms</td><td class="num">156.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-17.9%</span></td></tr><tr><td>Warm startup, cluster (max)</td><td class="num">223.0 ms</td><td class="num">275.0 ms</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+23.3%</span></td></tr></tbody></table>
+<table><thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th>Winner</th></tr></thead><tbody><tr><td>Cold startup, fork (median of medians)</td><td class="num">375.0 ms</td><td class="num">331.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-11.7%</span></td></tr><tr><td>Warm startup, fork (median)</td><td class="num">166.0 ms</td><td class="num">114.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-31.3%</span></td></tr><tr><td>Warm startup, fork (max)</td><td class="num">200.0 ms</td><td class="num">177.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-11.5%</span></td></tr><tr><td>Cold startup, cluster (median of medians)</td><td class="num">—</td><td class="num">459.0 ms</td><td class="win">—</td></tr><tr><td>Warm startup, cluster (median)</td><td class="num">—</td><td class="num">172.0 ms</td><td class="win">—</td></tr><tr><td>Warm startup, cluster (max)</td><td class="num">—</td><td class="num">296.0 ms</td><td class="win">—</td></tr></tbody></table>
 <h2>Idle daemon overhead (no application running)</h2>
-<table><thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th>Winner</th></tr></thead><tbody><tr><td>Median CPU %</td><td class="num">0.0</td><td class="num">0.0</td><td class="win">—</td></tr><tr><td>Median memory</td><td class="num">66.9 MB</td><td class="num">63.7 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-4.8%</span></td></tr></tbody></table>
+<table><thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th>Winner</th></tr></thead><tbody><tr><td>Median CPU %</td><td class="num">0.0</td><td class="num">0.0</td><td class="win">—</td></tr><tr><td>Median memory</td><td class="num">68.9 MB</td><td class="num">64.5 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-6.3%</span></td></tr></tbody></table>
 <h2>Crash recovery — fork</h2>
 <p>SIGKILL the managed server; the number is how long the manager takes to bring
 <code>/health</code> back to 200.</p>
-<table><thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th>Winner</th></tr></thead><tbody><tr><td>Recovery (mean)</td><td class="num">67.8 ms</td><td class="num">65.5 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-3.4%</span></td></tr><tr><td>Recovery (median)</td><td class="num">67.5 ms</td><td class="num">65.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-3.7%</span></td></tr><tr><td>Recovery (max)</td><td class="num">72.0 ms</td><td class="num">67.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-6.9%</span></td></tr><tr><td>Failed recoveries</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr></tbody></table>
+<table><thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th>Winner</th></tr></thead><tbody><tr><td>Recovery (mean)</td><td class="num">68.9 ms</td><td class="num">66.9 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-2.9%</span></td></tr><tr><td>Recovery (median)</td><td class="num">68.0 ms</td><td class="num">67.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-1.5%</span></td></tr><tr><td>Recovery (max)</td><td class="num">74.0 ms</td><td class="num">68.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-8.1%</span></td></tr><tr><td>Failed recoveries</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr></tbody></table>
 <h2>Crash recovery — cluster</h2>
 <p>One worker is SIGKILLed; the survivors keep the shared port up. The numbers are
 the manager's worker <strong>replacement time</strong> and whether <code>/health</code> ever
 stopped answering (it should not, with workers left).</p>
-<table><thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th>Winner</th></tr></thead><tbody><tr><td>Worker respawn (mean)</td><td class="num">79.8 ms</td><td class="num">76.4 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-4.3%</span></td></tr><tr><td>Worker respawn (median)</td><td class="num">79.0 ms</td><td class="num">77.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-2.5%</span></td></tr><tr><td>Worker respawn (max)</td><td class="num">88.0 ms</td><td class="num">79.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-10.2%</span></td></tr><tr><td>Failed replacements</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr><tr><td>Health stayed up</td><td class="num">100.0 % of kills</td><td class="num">100.0 % of kills</td><td class="win"><span class="w w-tie">tie</span></td></tr></tbody></table>
+<table><thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th>Winner</th></tr></thead><tbody><tr><td>Worker respawn (mean)</td><td class="num">—</td><td class="num">82.5 ms</td><td class="win">—</td></tr><tr><td>Worker respawn (median)</td><td class="num">—</td><td class="num">82.5 ms</td><td class="win">—</td></tr><tr><td>Worker respawn (max)</td><td class="num">—</td><td class="num">86.0 ms</td><td class="win">—</td></tr><tr><td>Failed replacements</td><td class="num">—</td><td class="num">0</td><td class="win">—</td></tr><tr><td>Health stayed up</td><td class="num">—</td><td class="num">100.0 % of kills</td><td class="win">—</td></tr></tbody></table>
 <h2>Restart storm — fork</h2>
-<table><thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th>Winner</th></tr></thead><tbody><tr><td>Restarts attempted</td><td class="num">50</td><td class="num">50</td><td class="win"><span class="w w-tie">tie</span></td></tr><tr><td>Restart time (median)</td><td class="num">249.5 ms</td><td class="num">117.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-53.1%</span></td></tr><tr><td>Failed restarts</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr><tr><td>Orphaned processes after</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr><tr><td>App RSS before</td><td class="num">35.3 MB</td><td class="num">35.2 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-0.2%</span></td></tr><tr><td>App RSS after</td><td class="num">35.1 MB</td><td class="num">35.0 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-0.2%</span></td></tr><tr><td>Memory growth (after − before)</td><td class="num">-0.2 MB</td><td class="num">-0.2 MB</td><td class="win">—</td></tr></tbody></table>
+<table><thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th>Winner</th></tr></thead><tbody><tr><td>Restarts attempted</td><td class="num">50</td><td class="num">50</td><td class="win"><span class="w w-tie">tie</span></td></tr><tr><td>Restart time (median)</td><td class="num">257.5 ms</td><td class="num">122.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-52.6%</span></td></tr><tr><td>Failed restarts</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr><tr><td>Orphaned processes after</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr><tr><td>App RSS before</td><td class="num">35.3 MB</td><td class="num">35.2 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-0.4%</span></td></tr><tr><td>App RSS after</td><td class="num">35.2 MB</td><td class="num">35.1 MB</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-0.2%</span></td></tr><tr><td>Memory growth (after − before)</td><td class="num">-0.1 MB</td><td class="num">-0.1 MB</td><td class="win">—</td></tr></tbody></table>
 <h2>Restart storm — cluster</h2>
 <p>Every restart must bring back ALL workers.</p>
-<table><thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th>Winner</th></tr></thead><tbody><tr><td>Restarts attempted (cluster)</td><td class="num">50</td><td class="num">50</td><td class="win"><span class="w w-tie">tie</span></td></tr><tr><td>Restart time (median)</td><td class="num">393.5 ms</td><td class="num">180.0 ms</td><td class="win"><span class="w w-pboss">pboss</span><span class="d">-54.3%</span></td></tr><tr><td>Failed restarts</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr><tr><td>Orphaned processes after</td><td class="num">0</td><td class="num">0</td><td class="win">—</td></tr><tr><td>Workers&#39; RSS before</td><td class="num">70.5 MB</td><td class="num">73.9 MB</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+4.9%</span></td></tr><tr><td>Workers&#39; RSS after</td><td class="num">70.2 MB</td><td class="num">74.3 MB</td><td class="win"><span class="w w-pm2">pm2</span><span class="d">+5.8%</span></td></tr><tr><td>Memory growth (after − before)</td><td class="num">-0.3 MB</td><td class="num">0.4 MB</td><td class="win">—</td></tr></tbody></table>
+<table><thead><tr><th>Metric</th><th class="num">pm2</th><th class="num">pboss</th><th>Winner</th></tr></thead><tbody><tr><td>Restarts attempted (cluster)</td><td class="num">—</td><td class="num">50</td><td class="win">—</td></tr><tr><td>Restart time (median)</td><td class="num">—</td><td class="num">178.5 ms</td><td class="win">—</td></tr><tr><td>Failed restarts</td><td class="num">—</td><td class="num">0</td><td class="win">—</td></tr><tr><td>Orphaned processes after</td><td class="num">—</td><td class="num">0</td><td class="win">—</td></tr><tr><td>Workers&#39; RSS before</td><td class="num">—</td><td class="num">73.8 MB</td><td class="win">—</td></tr><tr><td>Workers&#39; RSS after</td><td class="num">—</td><td class="num">73.6 MB</td><td class="win">—</td></tr><tr><td>Memory growth (after − before)</td><td class="num">—</td><td class="num">-0.2 MB</td><td class="win">—</td></tr></tbody></table>
 <h2>Reproduce</h2>
 <pre><code>cd benchmarks/bun
 npm install                     # pm2 + autocannon (local, pinned)

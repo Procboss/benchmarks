@@ -12,24 +12,24 @@
  *   pm2   start server.ts --interpreter $BUN_BIN               (fork: 1 proc)
  *   pboss start server.ts --interpreter $BUN_BIN --env PORT=<p> (fork: 1 proc)
  *
- * CLUSTER MODE — the same file, N worker processes instead of one. The
- * harness starts it with BENCH_CLUSTER=1 (manager-neutral: pboss carries it
- * through --env, pm2 through the start command's environment) and with N
- * instances (pboss --instances N · pm2 -i N). Every worker is an
- * independent Bun process binding the SAME port through SO_REUSEPORT —
- * reusePort is exactly what makes multi-process Bun serving possible, and
- * it is OFF in fork mode so the single-process behavior (and numbers) is
- * unchanged.
+ * CLUSTER MODE — the same file, N worker processes instead of one, pboss
+ * only (pm2 cannot cluster a Bun app — the suite records it as not
+ * supported and never measures it in this mode). The harness starts it
+ * with BENCH_CLUSTER=1 and N instances (pboss --instances N). Every
+ * worker is an independent Bun process binding the SAME port through
+ * SO_REUSEPORT — reusePort is exactly what makes multi-process Bun
+ * serving possible, and it is OFF in fork mode so the single-process
+ * behavior (and numbers) is unchanged.
  *
  * Port comes from PORT (read the way Bun reads env — Bun.env), 3000 default.
  */
 
 const port = Number(Bun.env.PORT ?? 3000);
 
-// Cluster mode is declared by the harness (BENCH_CLUSTER=1), never guessed
-// from manager-specific env — pboss's PBOSS_CLUSTER and pm2's NODE_APP_INSTANCE
-// would both work, but the flag travels to both managers the same way PORT
-// does, so the server cannot behave differently per manager.
+// Cluster mode is declared by the harness (BENCH_CLUSTER=1), never read
+// from a manager's own markers — one flag, one behavior, whoever the
+// manager is (pboss sets PBOSS_CLUSTER on its workers too; the app
+// doesn't care — the same file serves fork mode unchanged with it off).
 const cluster = Bun.env.BENCH_CLUSTER === "1";
 
 const server = Bun.serve({

@@ -1,5 +1,5 @@
 {
-  "startedAt": "2026-10-10T00:19:24.659Z",
+  "startedAt": "2026-10-10T05:20:33.265Z",
   "suite": "bun",
   "machine": {
     "os": "Linux",
@@ -32,6 +32,16 @@
       "fork",
       "cluster"
     ],
-    "clusterInstances": 2
+    "clusterInstances": 2,
+    "clusterSupport": {
+      "pboss": {
+        "supported": true,
+        "mechanism": "process-based cluster: --instances N, workers share the port via SO_REUSEPORT"
+      },
+      "pm2": {
+        "supported": false,
+        "reason": "pm2 cluster mode is node:cluster inside its daemon and cannot wrap an app run with a non-Node interpreter; with --interpreter bun, -i N silently downgrades to fork mode"
+      }
+    }
   }
 }

@@ -395,13 +395,17 @@ const fixtureData = () => ({
     cluster: {
       loads: [10, 100],
       byLoad: {
-        10: { pm2: aggregateLoad([fixtureRun(1500, 3, 1200)]), pboss: aggregateLoad([fixtureRun(1600, 3, 1000)]) },
-        100: { pm2: aggregateLoad([fixtureRun(1400, 10, 1250)]), pboss: aggregateLoad([fixtureRun(1450, 11, 1150)]) },
+        // bun suite reality: pm2 cannot cluster a Bun app, so only pboss
+        // ever has cluster rows — pm2's absence is carried by
+        // clusterUnsupported below (what loadEverything reads from
+        // raw/pm2/cluster-unsupported.json)
+        10: { pboss: aggregateLoad([fixtureRun(1600, 3, 1000)]) },
+        100: { pboss: aggregateLoad([fixtureRun(1450, 11, 1150)]) },
       },
     },
   },
   warmStartup: { pm2: [300, 400, 500], pboss: [200, 250, 300] },
-  warmStartupCluster: { pm2: [600, 700], pboss: [400, 500] },
+  warmStartupCluster: { pm2: [], pboss: [400, 500] },
   idle: {
     pm2: { cpuMedian: 1.5, rssMedianMb: 90 },
     pboss: { cpuMedian: 0.5, rssMedianMb: 40 },
@@ -411,7 +415,7 @@ const fixtureData = () => ({
     pboss: { recoveryMs: [400, 600], failures: 0 },
   },
   crashCluster: {
-    pm2: { respawnMs: [1500, 1700], failures: 0, healthStayedUp: 2, healthTotal: 2 },
+    pm2: undefined,
     pboss: { respawnMs: [700, 900], failures: 0, healthStayedUp: 2, healthTotal: 2 },
   },
   storm: {
@@ -419,11 +423,18 @@ const fixtureData = () => ({
     pboss: { restartMs: [500, 600], restarts: 50, failures: 0, orphans: 0, rssBeforeKb: 38000, rssAfterKb: 39000 },
   },
   stormCluster: {
-    pm2: { restartMs: [1800, 1900], restarts: 50, failures: 0, orphans: 0, rssBeforeKb: 80000, rssAfterKb: 84000 },
+    pm2: undefined,
     pboss: { restartMs: [900, 1000], restarts: 50, failures: 0, orphans: 0, rssBeforeKb: 76000, rssAfterKb: 78000 },
   },
   soak: {},
   soakCluster: {},
+  clusterUnsupported: {
+    pm2: {
+      manager: "pm2", mode: "cluster", supported: false, pm2Version: "5.4.3",
+      reason: "pm2 cluster mode (-i N) is node:cluster inside the pm2 daemon: cluster.fork() runs the daemon runtime (Node) and ignores --interpreter",
+      verified: "live: -i 2 --interpreter bun reports exec_mode fork_mode",
+    },
+  },
 });
 
 describe("buildReport — fixture data in, honest markdown out", () => {
@@ -472,10 +483,16 @@ describe("buildReport — fixture data in, honest markdown out", () => {
     expect(md).toContain("Failed recoveries | 1 | 0 |");
   });
 
-  test("cluster methodology states the pm2 fork-fallback honestly", () => {
+  test("cluster section reports pm2 as NOT SUPPORTED — no fork-as-cluster numbers", () => {
     const md = buildReport(fixtureData());
-    expect(md).toContain("SO_REUSEPORT");
-    expect(md).toContain("cannot wrap a Bun app in `node:cluster`");
+    expect(md).toContain("not supported");
+    expect(md).toContain("pm2: cluster mode — not supported (Bun apps)");
+    expect(md).toContain("node:cluster");
+    // the old fork-mode-equivalence claim must be gone for good
+    expect(md).not.toContain("identical either way");
+    // and no winner can be named without a pm2 baseline
+    const clusterSection = md.slice(md.indexOf("## Cluster mode"));
+    expect(clusterSection).toContain("| — |");
   });
 
   test("methodology states the same-machine caveat and alternation", () => {
@@ -485,7 +502,7 @@ describe("buildReport — fixture data in, honest markdown out", () => {
   });
 
   test("empty data degrades to a clean 'no runs' report", () => {
-    const md = buildReport({ meta: null, modes: {}, warmStartup: {}, warmStartupCluster: {}, idle: {}, crash: {}, crashCluster: {}, storm: {}, stormCluster: {}, soak: {}, soakCluster: {} });
+    const md = buildReport({ meta: null, modes: {}, warmStartup: {}, warmStartupCluster: {}, idle: {}, crash: {}, crashCluster: {}, storm: {}, stormCluster: {}, soak: {}, soakCluster: {}, clusterUnsupported: {} });
     expect(md).toContain("No load runs found");
     expect(md).not.toContain("| NaN");
   });
@@ -533,23 +550,31 @@ describe("buildReportHtml — the HTML version of the summary", () => {
   });
 
   test("empty data still produces a valid page", () => {
-    const html = buildReportHtml({ meta: null, modes: {}, warmStartup: {}, warmStartupCluster: {}, idle: {}, crash: {}, crashCluster: {}, storm: {}, stormCluster: {}, soak: {}, soakCluster: {} });
+    const html = buildReportHtml({ meta: null, modes: {}, warmStartup: {}, warmStartupCluster: {}, idle: {}, crash: {}, crashCluster: {}, storm: {}, stormCluster: {}, soak: {}, soakCluster: {}, clusterUnsupported: {} });
     expect(html.startsWith("<!DOCTYPE html>")).toBe(true);
     expect(html).toContain("No load runs found");
     expect(html).not.toContain("NaN");
   });
+
+  test("the html cluster section carries the not-supported callout too", () => {
+    const html = buildReportHtml(fixtureData());
+    expect(html).toContain("not supported (Bun apps)");
+    expect(html).toContain('class="unsupported"');
+    expect(html).not.toContain("identical either way");
+  });
 });
 
 describe("buildSummaryCsv — one row per mode × manager × load", () => {
-  test("header plus 2 modes × 2 loads × 2 managers fixture rows", () => {
+  test("header + fork(2×2) + cluster pboss-only(2) fixture rows — no cluster,pm2 rows", () => {
     const csv = buildSummaryCsv(fixtureData());
     const lines = csv.trim().split("\n");
     expect(lines[0]).toContain("mode,manager,connections,runs,measured");
-    expect(lines.length).toBe(9);
+    expect(lines.length).toBe(7);
     expect(lines[1].startsWith("fork,pm2,10,")).toBe(true);
     expect(lines[2].startsWith("fork,pboss,10,")).toBe(true);
-    expect(lines[5].startsWith("cluster,pm2,10,")).toBe(true);
-    expect(lines[6].startsWith("cluster,pboss,10,")).toBe(true);
+    expect(csv).toContain("\ncluster,pboss,10,");
+    // pm2 cannot cluster a Bun app — it must have NO cluster rows at all
+    expect(csv).not.toContain("cluster,pm2,");
   });
 });
 
@@ -561,7 +586,10 @@ describe("consoleSummary — what a nohup log ends with", () => {
     expect(forkLine).toContain("pboss 1,100");
     expect(forkLine).toContain("pboss (+10.0%)");
     const clusterLine = out.split("\n").find((l) => l.startsWith("[cluster]") && l.includes("c=10"));
-    expect(clusterLine).toContain("pboss (+6.7%)"); // 1600 vs 1500
+    // pm2 not supported in cluster mode → no pm2 number, no verdict
+    expect(clusterLine).toContain("pboss 1,600");
+    expect(clusterLine).toContain("—");
+    expect(clusterLine).not.toContain("(+6.7%)");
   });
 });
 
@@ -586,21 +614,32 @@ describe("fairness contract: scripts/lib/common.sh", () => {
     expect(sh).toContain('PORT="$BENCH_PORT" pm2_cli start');
   });
 
-  test("cluster mode: same server, same interpreter, SAME worker count for both", () => {
+  test("cluster mode (pboss arm): same server, same interpreter, N instances", () => {
     const fn = sh.slice(sh.indexOf("mgr_start_app_cluster() {"), sh.indexOf("mgr_worker_count() {"));
-    const pbossArm = fn.slice(fn.indexOf("pboss)"), fn.indexOf("pm2)"));
-    const pm2Arm = fn.slice(fn.indexOf("pm2)"));
+    const pbossArm = fn.slice(fn.indexOf("pboss)"), fn.indexOf("esac"));
     // same file + interpreter as fork mode
     expect(pbossArm).toContain('"$BENCH_DIR/server.ts"');
     expect(pbossArm).toContain('--interpreter "$BUN_BIN"');
-    expect(pm2Arm).toContain('"$BENCH_DIR/server.ts"');
-    expect(pm2Arm).toContain('--interpreter "$BUN_BIN"');
-    // the SAME N, from the same variable, for both managers
     expect(pbossArm).toContain('--instances "$instances"');
-    expect(pm2Arm).toContain('-i "$instances"');
-    // both arms carry the cluster flag that turns reusePort on in server.ts
+    // the flag that turns reusePort on in server.ts
     expect(pbossArm).toContain('--env BENCH_CLUSTER=1');
-    expect(pm2Arm).toContain("BENCH_CLUSTER=1");
+  });
+
+  test("pm2 has NO cluster arm — it cannot cluster a Bun app", () => {
+    const fn = sh.slice(sh.indexOf("mgr_start_app_cluster() {"), sh.indexOf("mgr_worker_count() {"));
+    expect(fn).not.toContain("pm2_cli start");
+    // the admission gate that makes that honest, not silent
+    const sup = sh.slice(sh.indexOf("mgr_supports_cluster() {"), sh.indexOf("write_cluster_unsupported() {"));
+    expect(sup).toContain("pboss) return 0");
+    expect(sup).toContain("pm2)   return 1");
+    // and the start itself refuses unsupported managers defensively
+    expect(fn).toContain("mgr_supports_cluster \"$manager\"");
+  });
+
+  test("unsupported managers are recorded machine-readably, once", () => {
+    expect(sh).toContain("write_cluster_unsupported() {");
+    expect(sh).toContain("cluster-unsupported.json");
+    expect(sh).toContain('[ -f "$out" ] && return 0');
   });
 
   test("BENCH_INSTANCES defaults to the core count and is validated", () => {
@@ -713,6 +752,20 @@ describe("fairness contract: scripts/benchmark.sh", () => {
     expect(runOne).toContain("mgr_worker_count");
   });
 
+  test("cluster phases admit only managers that support clustering", () => {
+    expect(sh).toContain('mode_managers "$mode"');
+    expect(sh).toContain("mgr_supports_cluster \"$m\"");
+    expect(sh).toContain("write_cluster_unsupported \"$m\"");
+    // an unsupported manager is never even started in cluster mode
+    expect(sh).not.toContain('order=("pm2" "pboss")\n      fi\n      for m in "${order[@]}"; do\n        run_one "pm2"');
+  });
+
+  test("meta.json records per-manager cluster support honestly", () => {
+    expect(sh).toContain("clusterSupport");
+    expect(sh).toContain("supported: false");
+    expect(sh).toContain("supported: true");
+  });
+
   test("meta.json records the cluster worker count and both modes", () => {
     expect(sh).toContain('modes: ["fork", "cluster"]');
     expect(sh).toContain("clusterInstances");
@@ -750,6 +803,15 @@ describe("fairness contract: scripts/crash-recovery.sh", () => {
     const fn = sh.slice(sh.indexOf("phase_storm_cluster()"));
     expect(fn).toContain("mgr_worker_count");
     expect(fn).toContain('-eq "$BENCH_INSTANCES"');
+  });
+
+  test("cluster phases skip unsupported managers (recorded, never measured)", () => {
+    const cc = sh.slice(sh.indexOf("phase_crash_cluster()"));
+    expect(cc).toContain("mgr_supports_cluster");
+    expect(cc).toContain("write_cluster_unsupported");
+    const sc = sh.slice(sh.indexOf("phase_storm_cluster()"));
+    expect(sc).toContain("mgr_supports_cluster");
+    expect(sc).toContain("write_cluster_unsupported");
   });
 
   test("mode dispatch: fork and cluster write to separate files", () => {

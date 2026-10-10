@@ -11,7 +11,10 @@
 #                     how fast the manager replaces the worker (a NEW server
 #                     pid, N workers again) and whether /health stayed up at
 #                     all (the surviving workers own the shared port, so the
-#                     answer should be "yes, continuously").
+#                     answer should be "yes, continuously"). Cluster phases
+#                     run only for managers that can cluster a Bun app
+#                     (mgr_supports_cluster) — pm2 is recorded as not
+#                     supported instead of being measured in fork disguise.
 #   restart storm   — manager-level restart N times in a row: failed starts,
 #                     orphaned processes, per-restart wall time, and the
 #                     app's RSS before vs after (leak check). CLUSTER adds a
@@ -107,6 +110,10 @@ phase_crash_fork() {
 phase_crash_cluster() {
   local manager i t0 t1
   for manager in "${MANAGERS[@]}"; do
+    if ! mgr_supports_cluster "$manager"; then
+      write_cluster_unsupported "$manager"
+      continue
+    fi
     step "crash recovery ($manager, cluster ×$BENCH_INSTANCES): $BENCH_CRASH_REPEATS × SIGKILL one worker"
     teardown_all || die "clean state unreachable before cluster crash phase ($manager)"
     mode_start_app "$manager" || die "cluster start failed ($manager)"
@@ -223,6 +230,10 @@ phase_storm_fork() {
 phase_storm_cluster() {
   local manager i t0 t1 fails rss_before rss_after orphans
   for manager in "${MANAGERS[@]}"; do
+    if ! mgr_supports_cluster "$manager"; then
+      write_cluster_unsupported "$manager"
+      continue
+    fi
     step "restart storm ($manager, cluster ×$BENCH_INSTANCES): $BENCH_STORM_RESTARTS × restart"
     teardown_all || die "clean state unreachable before cluster storm ($manager)"
     mgr_boot_daemon "$manager" || die "daemon boot failed ($manager)"

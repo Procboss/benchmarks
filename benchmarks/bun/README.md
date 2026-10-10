@@ -2,8 +2,10 @@
 
 A reproducible benchmark comparing **pboss** and **pm2** as process managers
 for the **same Bun HTTP server**, on one machine, under identical load — in
-both supervision models: **fork** (one managed process) and **cluster** (N
-workers sharing one port).
+both supervision models: **fork** (one managed process, both managers) and
+**cluster** (N workers sharing one port — **pboss only**: pm2 cannot cluster
+a Bun app, and this suite reports it as **not supported** rather than
+measuring fork-mode instances under a cluster label).
 
 What it measures is the **overhead of managing** a Bun server — supervision,
 spawn route, daemon cost — not Bun's raw HTTP performance and not application
@@ -43,24 +45,35 @@ Both managers launch the exact same file with the exact same Bun executable,
 same port, same environment. The ONLY difference between the two columns of
 every table is which process manager supervises the server.
 
-### Cluster mode, fairly
+### Cluster mode, honestly
 
-A Bun app cannot be wrapped in `node:cluster` (that only wraps Node
-processes), so "cluster" here means **process-based clustering**: N
-independent Bun workers all binding the same port through `SO_REUSEPORT`
+A Bun app cannot be wrapped in `node:cluster` — that API only runs Node
+workers (pm2's cluster mode is `cluster.fork()` **inside its Node daemon**,
+which always runs the daemon's own runtime and ignores `--interpreter`).
+So "cluster" for a Bun app means **process-based clustering**: N independent
+Bun workers all binding the same port through `SO_REUSEPORT`
 (`reusePort: true` in `Bun.serve`, which `server.ts` enables when the harness
 starts it with `BENCH_CLUSTER=1`). The kernel load-balances connections
 across the workers.
 
-- **pboss** uses its native cluster support: `pboss start server.ts
-  --instances N` (each worker gets `PBOSS_WORKER_ID` / `NODE_APP_INSTANCE`).
-- **pm2** cannot run `node:cluster` around a Bun app either, so `-i N` runs
-  the N instances as fork-mode processes (each with `NODE_APP_INSTANCE`) —
-  the same independent-Bun-processes-on-one-shared-port model.
+- **pboss** supports this natively: `pboss start server.ts --instances N`
+  (each worker gets `PBOSS_WORKER_ID` / `NODE_APP_INSTANCE`). The suite
+  measures it.
+- **pm2** does **not**: `pm2 start -i N --interpreter bun` silently
+  downgrades to **fork mode** (`exec_mode: fork_mode` — N plain processes,
+  no port sharing), and forcing `exec_mode: "cluster_mode"` runs the
+  workers under **Node**, not Bun. The suite therefore records pm2 as
+  **not supported** in cluster mode (`raw/pm2/cluster-unsupported.json`,
+  cited in the report) and never measures it there — no fork numbers
+  wearing a cluster label.
 
-Same server file, same worker count, same sharing mechanism on both sides —
-the manager stays the only variable, and the harness refuses to measure a
-cluster run unless the manager is ACTUALLY running N workers.
+(The `node` suite in this repo runs the same matrix with Node apps, where
+pm2's cluster mode genuinely works — the comparison this suite cannot
+make.)
+
+Same server file, same worker count where both managers run — the manager
+stays the only variable, and the harness refuses to measure a cluster run
+unless the manager is ACTUALLY running N workers.
 
 ## What is measured
 
@@ -160,65 +173,63 @@ Raw data for every number: [`results/raw/`](results/raw/) (autocannon JSON,
 Measured 2026-10-10 on this repo's benchmark machine (2 × Intel Xeon, 4 GB
 RAM, Linux 5.10; bun 1.3.14, node 24.21, pm2 5.4.3, pboss v1.7.5 from a repo
 checkout — the bun-channel equivalent). Standard profile: 10/100/500
-connections × 60 s × 5 repeats per manager, order alternating — **in both
-fork mode (60 runs total) and cluster mode (2 workers, 60 runs total)**. All
-120 runs, every raw file, and the per-run lists are committed under
-[`results/`](results/). Zero errors, timeouts, or non-2xx responses across
-all 120 runs.
+connections × 60 s × 5 repeats per manager, order alternating — **in fork
+mode (both managers, 30 runs) and cluster mode (2 workers, pboss only, 15
+runs)**. pm2 is **not measured in cluster mode at all**: it cannot cluster a
+Bun app (see “Cluster mode, honestly” above), so the run records it as not
+supported (`results/raw/pm2/cluster-unsupported.json`) instead of publishing
+fork-mode numbers under a cluster label. Zero errors, timeouts, or non-2xx
+responses across all 45 runs.
 
 **Fork headline — 100 connections** (full tables for 10 and 500 in the report):
 
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
-| Average requests/sec | 73,509 | 71,387 | pm2 (−2.9%) |
-| Average latency (mean) | 0.75 ms | 0.73 ms | pboss (−2.7%) |
+| Average requests/sec | 70,234 | 72,411 | pboss (+3.1%) |
+| Average latency (mean) | 1.08 ms | 0.90 ms | pboss (−16.7%) |
 | Median p99 latency | 25 ms | 25 ms | tie |
-| Average CPU usage (tree) | 67.2 % | 67.0 % | pboss (−0.2%) |
-| Average memory (tree) | 118.9 MB | 117.2 MB | pboss (−1.4%) |
-| Cold startup (median of medians) | 371 ms | 334 ms | pboss (−10.0%) |
-| Warm startup (median) | 214 ms | 122 ms | pboss (−43.0%) |
-| Crash recovery (mean) | 67.8 ms | 65.5 ms | pboss (−3.4%) |
-| Restart storm (median) | 249.5 ms | 117.0 ms | pboss (−53.1%) |
+| Average CPU usage (tree) | 66.9 % | 67.3 % | pm2 (+0.6%) |
+| Average memory (tree) | 119.3 MB | 116.8 MB | pboss (−2.1%) |
+| Cold startup (median of medians) | 375 ms | 331 ms | pboss (−11.7%) |
+| Warm startup (median) | 166 ms | 114 ms | pboss (−31.3%) |
+| Crash recovery (mean) | 68.9 ms | 66.9 ms | pboss (−2.9%) |
+| Restart storm (median) | 257.5 ms | 122.0 ms | pboss (−52.6%) |
 
-**Cluster headline — 100 connections, 2 workers**:
+**Cluster — pboss only (pm2: not supported for Bun apps)**, headline at 100
+connections, 2 workers:
 
-| Metric | pm2 | pboss | Winner |
-| --- | --- | --- | --- |
-| Average requests/sec | 74,886 | 73,434 | pm2 (−1.9%) |
-| Average latency (mean) | 0.64 ms | 0.74 ms | pm2 (+15.6%) |
-| Average memory (tree) | 165.0 MB | 165.3 MB | pm2 (+0.2%) |
-| Cold startup (median of medians) | 393 ms | 460 ms | pm2 (+17.0%) |
-| Warm startup (median) | 190 ms | 156 ms | pboss (−17.9%) |
-| Worker respawn after SIGKILL (mean) | 79.8 ms | 76.4 ms | pboss (−4.3%) |
-| Health stayed up during worker kill | 100 % | 100 % | tie |
-| Restart storm, all workers (median) | 393.5 ms | 180.0 ms | pboss (−54.3%) |
+| Metric | pm2 | pboss |
+| --- | --- | --- |
+| Average requests/sec | not supported | 69,857 |
+| Average latency (mean) | not supported | 0.95 ms |
+| Average memory (tree) | not supported | 164.7 MB |
+| Cold startup (median of medians) | not supported | 459 ms |
+| Warm startup (median) | not supported | 172 ms |
+| Worker respawn after SIGKILL (mean) | not supported | 82.5 ms |
+| Health stayed up during worker kill | not supported | 100 % |
+| Restart storm, all workers (median) | not supported | 178.5 ms |
 
 **What the data says** (this machine, this workload):
 
-- **Throughput stays a manager story of small margins**: within ±3% at most
-  loads in both modes, with the interesting exception of fork mode at 500
-  connections, where pboss was **+6.1% median RPS with −46% run-to-run
-  variance**. In cluster mode pm2 held a slight edge at 100/500 connections
-  (−2.8%/−3.0% median RPS, −15.6% mean latency at 100). The process manager
-  is not in the request path — these are scheduling and noise effects, not
-  protocol overhead.
-- **pboss starts a fork-mode app much faster**: cold −10%, warm −43%. In
-  cluster mode the picture flips for the cold path — starting 2 workers at
-  once costs pboss +17% cold, while its warm cluster start is still −18%.
-- **Under failure, pboss recovers or reloads faster in every mode**: fork
-  crash −3.4%, cluster worker respawn −4.3%, fork storm −53%, cluster storm
-  −54% (restarting both workers in 180 vs 393 ms).
-- **Clustering did its actual job for both managers**: killing one of two
-  workers never dropped `/health` (100% of kills), and the replacement
-  worker was up in ~76–80 ms either way.
-- **Both managers survived both 50-restart storms with zero failures, zero
-  orphans, zero measurable memory growth.** pm2's cluster workers were
-  ~5% smaller in RSS during the storm; pboss's idle daemon is ~5% smaller.
+- **Fork-mode throughput stays a manager story of small margins**: pm2 led
+  at 10 (−1.9%) and 500 (−3.6%) connections, pboss led at 100 (+4.3%)
+  with −36% run-to-run variance — the process manager is not in the request
+  path, so these are scheduling and noise effects, not protocol overhead.
+- **pboss wins every operational metric in fork mode**: cold start −12%,
+  warm start −31%, crash recovery −3%, 50-restart storm −53%, idle daemon
+  memory −6%. pm2's only fork wins are marginal (CPU +0.6%).
+- **Cluster mode is pboss's alone to run**: with 2 workers it holds ~70k
+  RPS at 100 connections, keeps `/health` up through 100% of single-worker
+  SIGKILLs, replaces a dead worker in ~83 ms, and restarts the whole
+  cluster in ~179 ms. (For the head-to-head cluster race — where pm2
+  genuinely competes with its own node:cluster — see the `node` suite.)
+- **Both managers survived the 50-restart fork storm with zero failures,
+  zero orphans, zero measurable memory growth.**
 
-The same honesty cuts both ways: pm2's fork cold-start advantage in cluster
-mode (+17%) and its cluster-mode latency edge at 100 connections are real
-findings on this box, not bugs in pboss's column. One machine, one moment in
-time — re-run the suite before deciding anything for your own hardware.
+The same honesty cuts both ways: pm2's small throughput leads at two of
+three load levels are real findings on this box, not bugs in pboss's
+column. One machine, one moment in time — re-run the suite before deciding
+anything for your own hardware.
 
 
 

@@ -283,7 +283,8 @@ export function buildReport(data) {
         `${c.durationSec ?? "?"}s each, ${c.warmupSec ?? "?"}s warmup, ${c.repeats ?? "?"} repeat(s) per manager |`,
     ];
     if (hasCluster) {
-      envRows.push(`| Cluster | ${c.clusterInstances ?? "?"} workers per manager (SO_REUSEPORT) |`);
+      const pm2Ns = data.clusterUnsupported?.pm2?.supported === false;
+      envRows.push(`| Cluster | ${c.clusterInstances ?? "?"} workers · pboss (SO_REUSEPORT)${pm2Ns ? " · pm2: not supported" : ""} |`);
     }
     L.push(mdTable(["Environment", ""], envRows), "");
   }
@@ -307,11 +308,13 @@ export function buildReport(data) {
   );
   if (hasCluster) {
     L.push(
-      "- **Cluster mode** runs the same matrix with N workers per manager: pboss",
-      "  uses its native process-based cluster (`--instances N`); pm2 cannot wrap",
-      "  a Bun app in `node:cluster`, so `-i N` runs the N instances as fork-mode",
-      "  processes — the same independent-Bun-processes-on-one-`SO_REUSEPORT`-port",
-      "  model on both sides, and the only variable stays the manager.",
+      "- **Cluster mode** runs the same matrix for every manager that can",
+      "  actually cluster a Bun app: pboss (its native process-based cluster,",
+      "  `--instances N`, workers sharing one `SO_REUSEPORT` port). pm2",
+      "  **cannot** — its cluster mode is `node:cluster` inside the pm2 daemon and",
+      "  cannot wrap an app run with a non-Node interpreter — so it is reported",
+      "  as **not supported** in the cluster section, never measured with",
+      "  fork-mode numbers wearing a cluster label.",
     );
   }
   L.push("", WINNER_NOTE, "");
@@ -358,18 +361,31 @@ export function buildReport(data) {
   }
 
   // ── cluster sections ──
+  const pm2ClusterUnsupported = data.clusterUnsupported?.pm2?.supported === false;
   if (hasCluster) {
     const instances = data.meta?.config?.clusterInstances;
     L.push(`## Cluster mode${Number.isFinite(instances) ? ` — ${instances} workers` : ""}`, "");
     L.push(
-      "Each manager supervises the SAME N Bun workers of the same `server.ts`,",
-      "all binding the same port through `SO_REUSEPORT` (the kernel balances",
-      "connections across them). pboss clusters with `--instances N`; pm2's",
-      "`-i N` cannot wrap a Bun app in `node:cluster` and instead runs the N",
-      "instances as fork-mode processes — the worker count and the sharing",
-      "mechanism are identical either way.",
+      "pboss supervises N Bun workers of the same `server.ts`, all binding the",
+      "same port through `SO_REUSEPORT` (the kernel balances connections across",
+      "them) — its native process-based cluster, `--instances N`.",
       "",
     );
+    if (pm2ClusterUnsupported) {
+      L.push(
+        "> **pm2: cluster mode — not supported (Bun apps).** PM2's cluster mode is",
+        "> implemented with `node:cluster` inside its Node daemon: `cluster.fork()`",
+        "> always runs the daemon's own runtime and ignores `--interpreter`, and pm2",
+        "> only selects cluster mode when the interpreter path contains \"node\" — so",
+        "> `pm2 start -i N --interpreter bun` silently runs the instances in **fork",
+        "> mode** (`exec_mode: fork_mode`, N plain processes, no port sharing), and",
+        "> forcing `exec_mode: \"cluster_mode\"` runs the workers under **Node**, not",
+        "> Bun. Rather than publish fork-mode numbers under a cluster label, this",
+        "> benchmark records pm2 as not supported and measures only pboss in this",
+        "> mode. (The `node` suite in this repo runs both managers' cluster modes.)",
+        "",
+      );
+    }
     const hl = headlineLoad(cluster.loads);
     L.push(`### Cluster headline — ${hl} connections`, "");
     L.push(mdTable(["Metric", "pm2", "pboss", "Winner"],
@@ -669,6 +685,9 @@ const HTML_STYLE = `
   .meta-table td:first-child, .meta-table th:first-child { width:11rem; }
   .pill { display:inline-block; background:#ddf4e4; color:var(--pboss); border-radius:999px;
           padding:.1em .7em; font-size:.78rem; font-weight:600; margin-left:.5em; }
+  .unsupported { border:1px solid #d4a72c66; background:#fff8c5; border-radius:8px;
+                 padding:12px 14px; margin:1rem 0 1.4rem; font-size:.92rem; }
+  .unsupported code { background:#fffdf0; }
   footer { margin-top:3rem; color:var(--sub); font-size:.85rem; border-top:1px solid var(--line); padding-top:1rem; }
 `;
 
@@ -721,7 +740,10 @@ export function buildReportHtml(data) {
       ["Profile", `${c.profile ?? "?"} — loads ${(c.connections ?? []).join("/")} conns, ` +
         `${c.durationSec ?? "?"}s each, ${c.warmupSec ?? "?"}s warmup, ${c.repeats ?? "?"} repeat(s) per manager`],
     ];
-    if (hasCluster) rows.push(["Cluster", `${instances ?? "?"} workers per manager (SO_REUSEPORT)`]);
+    if (hasCluster) {
+      const pm2Ns = data.clusterUnsupported?.pm2?.supported === false;
+      rows.push(["Cluster", `${instances ?? "?"} workers · pboss (SO_REUSEPORT)${pm2Ns ? " · pm2: not supported" : ""}`]);
+    }
     B.push('<table class="meta-table">');
     for (const [k, val] of rows) B.push(`<tr><th>${esc(k)}</th><td>${esc(val)}</td></tr>`);
     B.push("</table>");
@@ -745,11 +767,13 @@ export function buildReportHtml(data) {
   );
   if (hasCluster) {
     B.push(
-      "<li><strong>Cluster mode</strong> runs the same matrix with N workers per manager:",
-      "pboss uses its native process-based cluster (<code>--instances N</code>); pm2 cannot wrap a",
-      "Bun app in <code>node:cluster</code>, so <code>-i N</code> runs the N instances as fork-mode",
-      "processes — the same independent-Bun-processes-on-one-<code>SO_REUSEPORT</code>-port model on",
-      "both sides, and the only variable stays the manager.</li>",
+      "<li><strong>Cluster mode</strong> runs the same matrix for every manager that can",
+      "actually cluster a Bun app: pboss (its native process-based cluster,",
+      "<code>--instances N</code>, workers sharing one <code>SO_REUSEPORT</code> port). pm2",
+      "<strong>cannot</strong> — its cluster mode is <code>node:cluster</code> inside the pm2 daemon and",
+      "cannot wrap an app run with a non-Node interpreter — so it is reported as",
+      "<strong>not supported</strong> in the cluster section, never measured with fork-mode",
+      "numbers wearing a cluster label.</li>",
     );
   }
   B.push("</ul>");
@@ -781,12 +805,25 @@ export function buildReportHtml(data) {
     const hl = headlineLoad(cluster.loads);
     B.push(`<h2>Cluster mode<span class="pill">${Number.isFinite(instances) ? `${instances} workers` : "N workers"}</span></h2>`);
     B.push(
-      "<p>Each manager supervises the SAME N Bun workers of the same <code>server.ts</code>, all",
-      "binding the same port through <code>SO_REUSEPORT</code> (the kernel balances connections",
-      "across them). pboss clusters with <code>--instances N</code>; pm2's <code>-i N</code> cannot wrap",
-      "a Bun app in <code>node:cluster</code> and instead runs the N instances as fork-mode",
-      "processes — the worker count and the sharing mechanism are identical either way.</p>",
+      "<p>pboss supervises N Bun workers of the same <code>server.ts</code>, all binding the",
+      "same port through <code>SO_REUSEPORT</code> (the kernel balances connections across",
+      "them) — its native process-based cluster, <code>--instances N</code>.</p>",
     );
+    if (data.clusterUnsupported?.pm2?.supported === false) {
+      B.push(
+        '<div class="unsupported">',
+        "<strong>pm2: cluster mode — not supported (Bun apps).</strong>",
+        "PM2's cluster mode is implemented with <code>node:cluster</code> inside its Node daemon:",
+        "<code>cluster.fork()</code> always runs the daemon's own runtime and ignores",
+        "<code>--interpreter</code>, and pm2 only selects cluster mode when the interpreter path",
+        'contains "node" — so <code>pm2 start -i N --interpreter bun</code> silently runs the',
+        "instances in <strong>fork mode</strong> (<code>exec_mode: fork_mode</code>, N plain processes, no",
+        'port sharing), and forcing <code>exec_mode: "cluster_mode"</code> runs the workers under',
+        "<strong>Node</strong>, not Bun. Rather than publish fork-mode numbers under a cluster label,",
+        "this benchmark records pm2 as not supported and measures only pboss in this mode.",
+        "(The <code>node</code> suite in this repo runs both managers' cluster modes.)</div>",
+      );
+    }
     B.push(`<h3>Headline — ${hl} connections</h3>`);
     B.push(headlineTable(cluster.byLoad[hl]?.pm2, cluster.byLoad[hl]?.pboss));
     for (const conns of cluster.loads) {
@@ -953,11 +990,20 @@ export function loadEverything(resultsDir) {
     stormCluster: {},
     soak: {},
     soakCluster: {},
+    clusterUnsupported: {},
   };
 
   for (const manager of ["pm2", "pboss"]) {
     const mdir = join(resultsDir, "raw", manager);
     if (!existsSync(mdir)) continue;
+
+    // cluster-unsupported.json: a manager that cannot run cluster mode at
+    // all in this suite (bun: pm2) — the report's "not supported" callout
+    // cites this file, and NO cluster data for it is ever expected.
+    const unsupported = readJson(join(mdir, "cluster-unsupported.json"));
+    if (unsupported && unsupported.supported === false) {
+      data.clusterUnsupported[manager] = unsupported;
+    }
 
     // load runs: raw/<manager>/c<conns>/ and raw/<manager>/cluster-c<conns>/
     for (const entry of readdirSync(mdir)) {
