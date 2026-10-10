@@ -7,6 +7,17 @@
 # machine — the ONLY difference between the two columns of the report is
 # which process manager is supervising the server.
 #
+# TWO MODES, same contract:
+#   fork    — 1 managed process (mgr_start_app)
+#   cluster — N managed processes sharing the port via SO_REUSEPORT
+#             (mgr_start_app_cluster; server.ts enables reusePort under
+#             BENCH_CLUSTER=1). N is the same for both managers
+#             (BENCH_INSTANCES). pboss runs its native process-based
+#             cluster (--instances N); pm2 cannot wrap a Bun app in
+#             node:cluster, so -i N runs N fork-mode instances with
+#             NODE_APP_INSTANCE set — the same process-based model, and
+#             the report says so openly.
+#
 # Isolation: each manager gets its own scratch home (PBOSS_HOME / PM2_HOME
 # under a mktemp dir), so the benchmark never touches a real install's
 # daemon, dump or logs — and it gets deleted on exit.
@@ -67,6 +78,16 @@ RAW_DIR="$RESULTS_DIR/raw"
 : "${BENCH_URL:=http://127.0.0.1:$BENCH_PORT}"
 : "${BENCH_HEALTH_URL:=$BENCH_URL/health}"
 : "${SAMPLE_INTERVAL_MS:=500}"
+
+# Cluster-mode worker count. Default: one worker per core (what both
+# managers' "max" resolves to on this box) — oversubscribing a 2-core box
+# with the same-machine load generator would measure the OS scheduler,
+# not the managers. Same N for BOTH managers, always.
+: "${BENCH_INSTANCES:=$(nproc)}"
+# (validated with a plain exit — `die` is not defined yet at source time)
+case "$BENCH_INSTANCES" in
+  ''|*[!0-9]*|0) echo "bench: BENCH_INSTANCES must be a positive integer (got '$BENCH_INSTANCES')" >&2; exit 1 ;;
+esac
 
 # The Bun executable both managers must launch the server with. Explicit and
 # ABSOLUTE (never "whatever bun resolves to later") so both columns run one
@@ -192,6 +213,35 @@ mgr_start_app() {
   [ $rc -eq 0 ] || { warn "start ($manager) failed: $out"; return 1; }
 }
 
+# Cluster-mode start: N workers of the SAME server.ts, same interpreter,
+# same port — BENCH_CLUSTER=1 makes server.ts bind with SO_REUSEPORT so
+# the N processes share the listener (the kernel balances connections
+# across them). pboss uses its native --instances; pm2's -i N cannot wrap
+# a Bun app in node:cluster and runs the N instances as fork-mode
+# processes — both are independent Bun processes on one shared port.
+mgr_start_app_cluster() {
+  local manager="$1" name="$2" instances="$3" out rc=0
+  case "$manager" in
+    pboss)
+      out="$(pboss_cli start "$BENCH_DIR/server.ts" --name "$name" \
+             --interpreter "$BUN_BIN" --instances "$instances" \
+             --env PORT="$BENCH_PORT" --env BENCH_CLUSTER=1 2>&1)" || rc=$? ;;
+    pm2)
+      out="$(PORT="$BENCH_PORT" BENCH_CLUSTER=1 pm2_cli start "$BENCH_DIR/server.ts" \
+             --name "$name" -i "$instances" --interpreter "$BUN_BIN" 2>&1)" || rc=$? ;;
+  esac
+  [ $rc -eq 0 ] || { warn "cluster start ($manager) failed: $out"; return 1; }
+}
+
+# Count of live worker processes in the manager's tree (cluster sanity:
+# the manager must actually be running N of them, not 1, not N+1).
+mgr_worker_count() {
+  local manager="$1" pids
+  pids="$(mgr_app_pids "$manager")"
+  [ -n "$pids" ] || { echo 0; return; }
+  echo "$pids" | wc -l | tr -d ' '
+}
+
 mgr_delete_app() {
   local manager="$1" name="$2"
   case "$manager" in
@@ -217,14 +267,19 @@ mgr_version() {
   esac
 }
 
-# The managed Bun server's pid: the first process inside the daemon's tree
-# whose cmdline mentions server.ts. Re-resolved on every call — crashes and
-# restarts change the pid.
-mgr_app_pid() {
+# The managed Bun server's pid(s): processes inside the daemon's tree whose
+# cmdline mentions server.ts. Fork mode has exactly one; cluster mode has
+# BENCH_INSTANCES of them, so callers that need them all use mgr_app_pids.
+# Re-resolved on every call — crashes and restarts change the pids.
+mgr_app_pids() {
   local manager="$1" daemon_pid
   daemon_pid="$(mgr_daemon_pid "$manager")" || return 1
   "$NODE_BIN" "$SCRIPTS_DIR/collect-resources.mjs" find \
-    --roots "$daemon_pid" --match "$BENCH_DIR/server.ts" 2>/dev/null || true
+    --roots "$daemon_pid" --match "$BENCH_DIR/server.ts" --all 2>/dev/null || true
+}
+
+mgr_app_pid() {
+  mgr_app_pids "$1" | head -1
 }
 
 # Live processes still serving our server that a manager owns — a leaked

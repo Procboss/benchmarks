@@ -1,6 +1,6 @@
 {
-  "startedAt": "2026-10-09T05:19:25.136Z",
-  "suite": "bun-fork",
+  "startedAt": "2026-10-10T00:19:24.659Z",
+  "suite": "bun",
   "machine": {
     "os": "Linux",
     "kernel": "5.10.134-013.15.kangaroo.al8.x86_64",
@@ -27,6 +27,11 @@
     "repeats": 5,
     "sampleIntervalMs": 500,
     "crashRepeats": 10,
-    "stormRestarts": 50
+    "stormRestarts": 50,
+    "modes": [
+      "fork",
+      "cluster"
+    ],
+    "clusterInstances": 2
   }
 }

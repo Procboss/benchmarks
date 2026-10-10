@@ -1,0 +1,5 @@
+{"manager":"pm2","repeat":1,"connections":10,"duration":60,"mode":"cluster","workers":2,"coldStartupMs":402,"startedAt":"2026-10-10T00:57:11Z","daemonPid":13490,"appPid":13504}
+{"manager":"pm2","repeat":2,"connections":10,"duration":60,"mode":"cluster","workers":2,"coldStartupMs":374,"startedAt":"2026-10-10T01:00:49Z","daemonPid":14061,"appPid":14075}
+{"manager":"pm2","repeat":3,"connections":10,"duration":60,"mode":"cluster","workers":2,"coldStartupMs":382,"startedAt":"2026-10-10T01:02:00Z","daemonPid":14227,"appPid":14241}
+{"manager":"pm2","repeat":4,"connections":10,"duration":60,"mode":"cluster","workers":2,"coldStartupMs":393,"startedAt":"2026-10-10T01:05:39Z","daemonPid":14745,"appPid":14759}
+{"manager":"pm2","repeat":5,"connections":10,"duration":60,"mode":"cluster","workers":2,"coldStartupMs":385,"startedAt":"2026-10-10T01:06:52Z","daemonPid":14911,"appPid":14925}

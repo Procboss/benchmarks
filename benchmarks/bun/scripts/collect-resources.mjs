@@ -213,13 +213,18 @@ async function main() {
   const [cmd, ...args] = argv.slice(2);
 
   if (cmd === "find") {
-    // find --roots <pid[,pid...]> --match <substring>
+    // find --roots <pid[,pid...]> --match <substring> [--all]
     //   → prints the pid of the FIRST live process in the trees whose
     //     cmdline contains the substring (the managed Bun server), or
     //     exits 1. Excludes the roots themselves: those are the daemons.
+    //   --all prints EVERY match, one pid per line (cluster mode: the
+    //     manager supervises N server processes, and the harness needs
+    //     all of them — to kill a worker, to count workers, to sample).
     const roots = flag(args, "--roots", "").split(",").map(Number).filter(Boolean);
     const match = flag(args, "--match", "");
+    const all = args.includes("--all");
     const table = snapshotStatTable();
+    let printed = false;
     for (const pid of treeOf(roots, table)) {
       if (roots.includes(pid)) continue;
       let cmdline = "";
@@ -230,10 +235,11 @@ async function main() {
       }
       if (cmdline.includes(match)) {
         console.log(pid);
-        return;
+        printed = true;
+        if (!all) return;
       }
     }
-    exit(1);
+    if (!printed) exit(1);
   }
 
   if (cmd === "sample") {
