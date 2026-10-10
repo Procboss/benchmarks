@@ -1,0 +1,46 @@
+{
+  "startedAt": "2026-10-10T06:20:46.257Z",
+  "suite": "node",
+  "machine": {
+    "os": "Linux",
+    "kernel": "5.10.134-013.15.kangaroo.al8.x86_64",
+    "cpu": "Intel(R) Xeon(R) Processor",
+    "cores": 2,
+    "memMb": 4041
+  },
+  "versions": {
+    "node": "v24.21.0",
+    "pm2": "5.4.3",
+    "pboss": "pboss v1.7.5"
+  },
+  "config": {
+    "profile": "standard",
+    "port": 3000,
+    "connections": [
+      10,
+      100,
+      500
+    ],
+    "durationSec": 60,
+    "warmupSec": 10,
+    "repeats": 5,
+    "sampleIntervalMs": 500,
+    "crashRepeats": 10,
+    "stormRestarts": 50,
+    "modes": [
+      "fork",
+      "cluster"
+    ],
+    "clusterInstances": 2,
+    "clusterSupport": {
+      "pboss": {
+        "supported": true,
+        "mechanism": "node:cluster mode: a supervised wrapper primary forks the N workers (--instances N)"
+      },
+      "pm2": {
+        "supported": true,
+        "mechanism": "true cluster_mode: the pm2 daemon is the primary and forks the N workers (-i N)"
+      }
+    }
+  }
+}

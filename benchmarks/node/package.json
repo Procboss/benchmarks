@@ -1,0 +1,18 @@
+{
+  "name": "pboss-node-benchmark",
+  "version": "1.0.0",
+  "private": true,
+  "description": "pboss vs pm2 managing the same Node HTTP server — fork and native node:cluster modes: throughput, latency, CPU, memory, startup, crash recovery. See README.md for methodology and results.",
+  "type": "module",
+  "scripts": {
+    "bench": "bash scripts/benchmark.sh",
+    "smoke": "BENCH_PROFILE=smoke bash scripts/benchmark.sh",
+    "crash": "bash scripts/crash-recovery.sh",
+    "report": "node scripts/summarize.mjs",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "autocannon": "^7.15.0",
+    "pm2": "^5.4.2"
+  }
+}

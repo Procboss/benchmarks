@@ -1,0 +1,5 @@
+{"manager":"pboss","repeat":1,"connections":100,"duration":60,"mode":"cluster","workers":2,"coldStartupMs":398,"startedAt":"2026-10-10T07:10:44Z","daemonPid":5931,"appPid":5951}
+{"manager":"pboss","repeat":2,"connections":100,"duration":60,"mode":"cluster","workers":2,"coldStartupMs":414,"startedAt":"2026-10-10T07:14:21Z","daemonPid":6496,"appPid":6515}
+{"manager":"pboss","repeat":3,"connections":100,"duration":60,"mode":"cluster","workers":2,"coldStartupMs":425,"startedAt":"2026-10-10T07:15:34Z","daemonPid":6680,"appPid":6699}
+{"manager":"pboss","repeat":4,"connections":100,"duration":60,"mode":"cluster","workers":2,"coldStartupMs":413,"startedAt":"2026-10-10T07:19:11Z","daemonPid":7233,"appPid":7252}
+{"manager":"pboss","repeat":5,"connections":100,"duration":60,"mode":"cluster","workers":2,"coldStartupMs":411,"startedAt":"2026-10-10T07:20:23Z","daemonPid":7416,"appPid":7436}
