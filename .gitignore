@@ -6,3 +6,4 @@ node_modules
 
 # scratch from local manual runs
 *.log
+benchmarks/bun/bun.lock
