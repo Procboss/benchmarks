@@ -273,9 +273,9 @@ numbers are the manager's worker **replacement time** and whether
 
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
-| Worker respawn (mean) | 169.3 ms | 7968.7 ms | pm2 (+4606.9%) |
-| Worker respawn (median) | 191.5 ms | 7301.0 ms | pm2 (+3712.5%) |
-| Worker respawn (max) | 205.0 ms | 15071.0 ms | pm2 (+7251.7%) |
+| Worker respawn (mean) | 173.2 ms | 92.3 ms | pboss (-46.7%) |
+| Worker respawn (median) | 185.0 ms | 91.0 ms | pboss (-50.8%) |
+| Worker respawn (max) | 212.0 ms | 101.0 ms | pboss (-52.4%) |
 | Failed replacements | 0 | 0 | — |
 | Health stayed up | 100.0 % of kills | 100.0 % of kills | tie |
 
@@ -298,12 +298,12 @@ numbers are the manager's worker **replacement time** and whether
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
 | Restarts attempted | 50 | 50 | tie |
-| Restart time (median) | 489.0 ms | 284.5 ms | pboss (-41.8%) |
+| Restart time (median) | 497.0 ms | 328.0 ms | pboss (-34.0%) |
 | Failed restarts | 0 | 0 | — |
 | Orphaned processes after | 0 | 0 | — |
-| Workers' RSS before | 145.0 MB | 114.3 MB | pboss (-21.2%) |
-| Workers' RSS after | 145.1 MB | 114.4 MB | pboss (-21.2%) |
-| Memory growth (after − before) | 0.2 MB | 0.2 MB | — |
+| Workers' RSS before | 143.8 MB | 114.1 MB | pboss (-20.7%) |
+| Workers' RSS after | 145.3 MB | 114.4 MB | pboss (-21.3%) |
+| Memory growth (after − before) | 1.5 MB | 0.2 MB | pboss (-83.7%) |
 
 
 ## Reproduce

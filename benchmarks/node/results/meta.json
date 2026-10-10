@@ -11,7 +11,7 @@
   "versions": {
     "node": "v24.21.0",
     "pm2": "5.4.3",
-    "pboss": "pboss v1.7.5"
+    "pboss": "pboss v1.7.6"
   },
   "config": {
     "profile": "standard",
@@ -42,5 +42,6 @@
         "mechanism": "true cluster_mode: the pm2 daemon is the primary and forks the N workers (-i N)"
       }
     }
-  }
+  },
+  "notes": "2026-10-11: cluster crash-recovery, cluster restart-storm, and soak phases re-measured after the pboss performance pass (commit c75715a: immediate worker respawn, all-async runtime layer, fd-sampling throttle). Throughput/latency/resource rows are unchanged from the original full run (the manager is not in the request path; the phases the pass affects were the ones re-measured)."
 }
