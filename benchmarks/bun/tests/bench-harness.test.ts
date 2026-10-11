@@ -197,6 +197,20 @@ describe("relDiff — (pboss − pm2) / pm2 × 100", () => {
     expect(relDiff(NaN, 100)).toBeNull();
     expect(relDiff(10, NaN)).toBeNull();
   });
+
+  test("a NEGATIVE baseline keeps the diff's sign honest (memory-growth bug)", () => {
+    // pup's "after − before" was −1.2 MB, pboss's +3.1: the old formula
+    // divided by the negative baseline and INVERTED the winner column.
+    expect(relDiff(3.1, -1.2)).toBeCloseTo(358.3, 1);
+    expect(relDiff(-1.2, -1.2)).toBe(0);
+    expect(winnerOf(3.1, -1.2, true).winner).toBe("pup"); // more growth = worse
+    expect(winnerOf(-2.0, -1.2, true).winner).toBe("pboss"); // shrank more
+  });
+  test("Health stayed up is HIGHER-is-better (the inverted-winner bug)", () => {
+    expect(winnerOf(100, 70, false).winner).toBe("pboss");
+    expect(winnerOf(70, 100, false).winner).toBe("pup");
+    expect(winnerOf(100, 100, false).winner).toBe("tie");
+  });
 });
 
 describe("computeAggregates — one run's samples", () => {

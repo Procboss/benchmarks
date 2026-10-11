@@ -1,5 +1,5 @@
-{"manager":"pup","repeat":1,"connections":100,"duration":60,"mode":"fork","workers":1,"coldStartupMs":1061,"startedAt":"2026-10-11T06:11:10Z","daemonPid":26482,"appPid":26552}
-{"manager":"pup","repeat":2,"connections":100,"duration":60,"mode":"fork","workers":1,"coldStartupMs":1148,"startedAt":"2026-10-11T06:14:53Z","daemonPid":27225,"appPid":27245}
-{"manager":"pup","repeat":3,"connections":100,"duration":60,"mode":"fork","workers":1,"coldStartupMs":1063,"startedAt":"2026-10-11T06:16:15Z","daemonPid":27674,"appPid":27749}
-{"manager":"pup","repeat":4,"connections":100,"duration":60,"mode":"fork","workers":1,"coldStartupMs":1124,"startedAt":"2026-10-11T06:19:58Z","daemonPid":28413,"appPid":28433}
-{"manager":"pup","repeat":5,"connections":100,"duration":60,"mode":"fork","workers":1,"coldStartupMs":1060,"startedAt":"2026-10-11T06:21:22Z","daemonPid":28848,"appPid":28923}
+{"manager":"pup","repeat":1,"connections":100,"duration":60,"mode":"fork","workers":1,"coldStartupMs":1151,"startedAt":"2026-10-11T13:01:06Z","daemonPid":29168,"appPid":29194}
+{"manager":"pup","repeat":2,"connections":100,"duration":60,"mode":"fork","workers":1,"coldStartupMs":1169,"startedAt":"2026-10-11T13:09:56Z","daemonPid":31345,"appPid":31368}
+{"manager":"pup","repeat":3,"connections":100,"duration":60,"mode":"fork","workers":1,"coldStartupMs":1161,"startedAt":"2026-10-11T13:16:18Z","daemonPid":543,"appPid":563}
+{"manager":"pup","repeat":4,"connections":100,"duration":60,"mode":"fork","workers":1,"coldStartupMs":1161,"startedAt":"2026-10-11T13:25:06Z","daemonPid":2723,"appPid":2745}
+{"manager":"pup","repeat":5,"connections":100,"duration":60,"mode":"fork","workers":1,"coldStartupMs":1139,"startedAt":"2026-10-11T13:31:28Z","daemonPid":4381,"appPid":4406}

@@ -68,7 +68,7 @@ export function maxOf(xs) {
 /** (pboss − pm2) / pm2 × 100 — null when the baseline is unusable. */
 export function relDiff(pbossVal, pm2Val) {
   if (!Number.isFinite(pbossVal) || !Number.isFinite(pm2Val) || pm2Val === 0) return null;
-  return ((pbossVal - pm2Val) / pm2Val) * 100;
+  return ((pbossVal - pm2Val) / Math.abs(pm2Val)) * 100;
 }
 
 /**
@@ -473,7 +473,7 @@ export function buildReport(data) {
       cmpRow("Worker respawn (median)", median(data.crashCluster?.pm2?.respawnMs ?? []), median(data.crashCluster?.pboss?.respawnMs ?? []), " ms"),
       cmpRow("Worker respawn (max)", maxOf(data.crashCluster?.pm2?.respawnMs ?? []), maxOf(data.crashCluster?.pboss?.respawnMs ?? []), " ms"),
       cmpRow("Failed replacements", data.crashCluster?.pm2?.failures, data.crashCluster?.pboss?.failures, "", true, 0),
-      cmpRow("Health stayed up", upRatio("pm2"), upRatio("pboss"), " % of kills", true, 1),
+      cmpRow("Health stayed up", upRatio("pm2"), upRatio("pboss"), " % of kills", false, 1),
     ]), "");
   }
 
@@ -886,7 +886,7 @@ export function buildReportHtml(data) {
       row("Worker respawn (median)", median(data.crashCluster?.pm2?.respawnMs ?? []), median(data.crashCluster?.pboss?.respawnMs ?? []), " ms"),
       row("Worker respawn (max)", maxOf(data.crashCluster?.pm2?.respawnMs ?? []), maxOf(data.crashCluster?.pboss?.respawnMs ?? []), " ms"),
       row("Failed replacements", data.crashCluster?.pm2?.failures, data.crashCluster?.pboss?.failures, "", true, 0),
-      row("Health stayed up", upRatio("pm2"), upRatio("pboss"), " % of kills", true, 1),
+      row("Health stayed up", upRatio("pm2"), upRatio("pboss"), " % of kills", false, 1),
     ]));
   }
 
@@ -1229,7 +1229,7 @@ export function buildReadmeSummary(data) {
         n1(pctHealth(data.crashCluster?.pboss)) + " % | — |",
     );
   } else {
-    L.push(cmpRow("Health stayed up during worker kill", pctHealth(data.crashCluster?.pm2), pctHealth(data.crashCluster?.pboss), " %"));
+    L.push(cmpRow("Health stayed up during worker kill", pctHealth(data.crashCluster?.pm2), pctHealth(data.crashCluster?.pboss), " %", false));
   }
   L.push(
     cmpRow(
