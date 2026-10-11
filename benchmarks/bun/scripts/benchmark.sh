@@ -56,8 +56,12 @@ preflight() {
   # is the precondition for every measurement below
   teardown_all || die "cannot reach a clean state (port $BENCH_PORT busy or stray server processes)"
 
-  # fresh results per invocation: stale runs would corrupt the aggregates
-  rm -rf "$RAW_DIR"
+  # fresh results per invocation: stale runs would corrupt the aggregates —
+  # UNLESS the run is explicitly resumed (BENCH_APPEND=1: a long profile split
+  # across sessions reuses the same results dir, so chunks accumulate)
+  if [ "${BENCH_APPEND:-0}" != "1" ]; then
+    rm -rf "$RAW_DIR"
+  fi
   init_results
 }
 
@@ -219,9 +223,20 @@ phase_matrix() {
   local conns_arr conns repeat load_index=0 m
   IFS=',' read -r -a conns_arr <<< "$BENCH_CONNECTIONS"
 
+  # chunk window: BENCH_START_REPEAT..BENCH_END_REPEAT let a long profile run
+  # across sessions (append mode accumulates the rest)
+  local r_start="${BENCH_START_REPEAT:-1}" r_end="${BENCH_END_REPEAT:-$BENCH_REPEATS}"
   for conns in "${conns_arr[@]}"; do
-    repeat=1
-    while [ "$repeat" -le "$BENCH_REPEATS" ]; do
+    # alternation seed: the runs already on disk for THIS (mode, load) — a
+    # resumed chunk keeps alternating exactly where the previous one left off
+    local mdir="c$conns"
+    [ "$mode" = "cluster" ] && mdir="cluster-c$conns"
+    load_index=0
+    for seedmgr in "${MANAGERS[@]}"; do
+      [ -f "$RAW_DIR/$seedmgr/$mdir/run.jsonl" ] && load_index=$(( load_index + $(wc -l < "$RAW_DIR/$seedmgr/$mdir/run.jsonl") ))
+    done
+    repeat="$r_start"
+    while [ "$repeat" -le "$r_end" ]; do
       # alternate who runs first (load index + repeat parity) — with one
       # manager there is nothing to alternate, it just runs
       local order
@@ -251,8 +266,10 @@ phase_warm_startup() {
   for manager in "${managers[@]}"; do
     teardown_all || die "clean state unreachable before warm startup ($manager, $mode)"
     mgr_boot_daemon "$manager" || die "daemon boot failed ($manager)"
-    i=0
-    while [ "$i" -lt "$BENCH_REPEATS" ]; do
+    # chunk window (same contract as the matrix phase)
+    local r_start="${BENCH_START_REPEAT:-1}" r_end="${BENCH_END_REPEAT:-$BENCH_REPEATS}"
+    i=$((r_start - 1))
+    while [ "$i" -lt "$r_end" ]; do
       t0="$(now_ms)"
       local started_ok=1
       if [ "$mode" = "cluster" ]; then
@@ -280,26 +297,58 @@ phase_warm_startup() {
 }
 
 # ── main ───────────────────────────────────────────────────────────────────
+# BENCH_PHASES (comma list, default "all") selects which phases THIS
+# invocation runs — the chunked-execution contract for environments that cap
+# process lifetime: a long profile is split across invocations with
+# BENCH_APPEND=1 + a repeat window + one phase per chunk; every chunk ends
+# with a summarize, so the report/README always reflect exactly the data
+# accumulated so far.
+phases_run() {
+  case ",${BENCH_PHASES:-all}," in
+    *,all,*|*,"$1",*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 main() {
   preflight
-  write_meta
-  phase_idle
+  # append mode: a resumed chunk keeps the run's original identity (the
+  # first chunk's meta.json — startedAt and versions stay the run's truth)
+  if [ "${BENCH_APPEND:-0}" = "1" ] && [ -f "$RESULTS_DIR/meta.json" ]; then
+    step "append mode — keeping existing meta.json (chunk of the same run)"
+  else
+    write_meta
+  fi
 
-  step "phase 2/7 — HTTP matrix (fork)"
-  phase_matrix fork
-  step "phase 3/7 — warm startup (fork)"
-  phase_warm_startup fork
+  phases_run idle && phase_idle
 
-  step "phase 4/7 — HTTP matrix (cluster, ×$BENCH_INSTANCES workers)"
-  phase_matrix cluster
-  step "phase 5/7 — warm startup (cluster)"
-  phase_warm_startup cluster
+  phases_run matrix-fork && {
+    step "phase 2/7 — HTTP matrix (fork)"
+    phase_matrix fork
+  }
+  phases_run warm-fork && {
+    step "phase 3/7 — warm startup (fork)"
+    phase_warm_startup fork
+  }
 
-  step "phase 6/7 — crash recovery + restart storm (fork)"
-  BENCH_EMBEDDED=1 bash "$DIR/crash-recovery.sh" || warn "crash phases reported failures (see above)"
+  phases_run matrix-cluster && {
+    step "phase 4/7 — HTTP matrix (cluster, ×$BENCH_INSTANCES workers)"
+    phase_matrix cluster
+  }
+  phases_run warm-cluster && {
+    step "phase 5/7 — warm startup (cluster)"
+    phase_warm_startup cluster
+  }
 
-  step "phase 7/7 — crash recovery + restart storm (cluster)"
-  BENCH_EMBEDDED=1 BENCH_MODE=cluster bash "$DIR/crash-recovery.sh" || warn "cluster crash phases reported failures (see above)"
+  phases_run crash-fork && {
+    step "phase 6/7 — crash recovery + restart storm (fork)"
+    BENCH_EMBEDDED=1 bash "$DIR/crash-recovery.sh" || warn "crash phases reported failures (see above)"
+  }
+
+  phases_run crash-cluster && {
+    step "phase 7/7 — crash recovery + restart storm (cluster)"
+    BENCH_EMBEDDED=1 BENCH_MODE=cluster bash "$DIR/crash-recovery.sh" || warn "cluster crash phases reported failures (see above)"
+  }
 
   step "summarizing → $RESULTS_DIR/summary.csv + REPORT.md + REPORT.html"
   "$NODE_BIN" "$DIR/summarize.mjs" --results "$RESULTS_DIR" || die "summarize failed"

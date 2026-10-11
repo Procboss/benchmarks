@@ -10,11 +10,11 @@ _An HTML version of this summary lives beside it: `results/REPORT.html`._
 
 | Environment |  |
 | --- | --- |
-| Date | 2026-10-10T05:20:33.265Z |
+| Date | 2026-10-11T02:07:32.313Z |
 | OS | Linux — kernel 5.10.134-013.15.kangaroo.al8.x86_64 |
 | CPU | 2 × Intel(R) Xeon(R) Processor |
 | Memory | 4041 MB |
-| Versions | bun 1.3.14 · node v24.21.0 · pm2 5.4.3 · pboss pboss v1.7.5 |
+| Versions | bun 1.3.14 · node v24.21.0 · pm2 5.4.3 · pboss pboss v1.8.0 |
 | Profile | standard — loads 10/100/500 conns, 60s each, 10s warmup, 5 repeat(s) per manager |
 | Cluster | 2 workers · pboss (SO_REUSEPORT) · pm2: not supported |
 
@@ -48,14 +48,14 @@ _Winner names the column that scored better; the percentage beside it is the rel
 
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
-| Average requests/sec | 70233.8 | 72411.3 | pboss (+3.1%) |
-| Average latency (mean) | 1.08 ms | 0.90 ms | pboss (-16.7%) |
-| Median p50 latency | 1.00 ms | 1.00 ms | tie |
+| Average requests/sec | 73892.0 | 72138.8 | pm2 (-2.4%) |
+| Average latency (mean) | 0.70 ms | 0.84 ms | pm2 (+20.0%) |
+| Median p50 latency | 0.00 ms | 0.00 ms | — |
 | Median p95 latency | — | — | — |
 | Median p99 latency | 25.00 ms | 25.00 ms | tie |
-| Average CPU usage (tree) | 66.9 % | 67.3 % | pm2 (+0.6%) |
-| Average memory (tree) | 119.3 MB | 116.8 MB | pboss (-2.1%) |
-| Average cold startup | 384.4 ms | 332.6 ms | pboss (-13.5%) |
+| Average CPU usage (tree) | 67.0 % | 66.9 % | pboss (-0.1%) |
+| Average memory (tree) | 119.5 MB | 117.9 MB | pboss (-1.3%) |
+| Average cold startup | 389.2 ms | 338.2 ms | pboss (-13.1%) |
 
 _Autocannon percentiles are integer-ms: a sub-millisecond p50 shows as
 0.00 — read the average-latency row for sub-ms precision, and p99 for
@@ -65,9 +65,9 @@ tail behavior._
 
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
-| Median requests/sec | 75604.5 | 74185.3 | pm2 (-1.9%) |
-| Mean requests/sec | 76586.9 | 74942.0 | pm2 (-2.1%) |
-| RPS stdev (variability) | 2759.9 | 2344.4 | pboss (-15.1%) |
+| Median requests/sec | 77945.9 | 79963.7 | pboss (+2.6%) |
+| Mean requests/sec | 77483.8 | 80862.3 | pboss (+4.4%) |
+| RPS stdev (variability) | 1071.5 | 3180.8 | pm2 (+196.9%) |
 | Average latency (mean) | 0.04 ms | 0.04 ms | tie |
 | Median p50 latency | 0.00 ms | 0.00 ms | — |
 | Median p90 latency | 0.00 ms | 0.00 ms | — |
@@ -76,62 +76,62 @@ tail behavior._
 | Errors (total) | 0 | 0 | — |
 | Timeouts (total) | 0 | 0 | — |
 | Non-2xx (total) | 0 | 0 | — |
-| Avg CPU % of tree | 68.6 | 69.3 | pm2 (+0.9%) |
+| Avg CPU % of tree | 69.1 | 69.4 | pm2 (+0.4%) |
 | Median CPU % of tree | 70.0 | 70.0 | tie |
-| Peak CPU % of tree | 75.2 | 76.0 | pm2 (+1.1%) |
-| Avg tree memory | 119.6 MB | 117.3 MB | pboss (-2.0%) |
-| Median tree memory | 119.6 MB | 117.3 MB | pboss (-1.9%) |
-| Cold startup (median) | 365.0 ms | 331.0 ms | pboss (-9.3%) |
+| Peak CPU % of tree | 73.6 | 75.2 | pm2 (+2.2%) |
+| Avg tree memory | 119.8 MB | 117.7 MB | pboss (-1.7%) |
+| Median tree memory | 119.8 MB | 117.7 MB | pboss (-1.7%) |
+| Cold startup (median) | 384.0 ms | 337.0 ms | pboss (-12.2%) |
 
-_Runs: 5 pm2 / 5 pboss. RPS per run: pm2 [80,769, 77,605, 73,458, 75,605, 75,498] · pboss [76,465, 74,185, 72,259, 73,657, 78,143]_
+_Runs: 5 pm2 / 5 pboss. RPS per run: pm2 [77,516, 77,946, 77,988, 75,638, 78,331] · pboss [79,414, 85,889, 81,609, 77,436, 79,964]_
 
 ## Fork mode — load: 100 connections
 
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
-| Median requests/sec | 68789.3 | 71714.4 | pboss (+4.3%) |
-| Mean requests/sec | 70233.8 | 72411.3 | pboss (+3.1%) |
-| RPS stdev (variability) | 3275.4 | 2101.5 | pboss (-35.8%) |
-| Average latency (mean) | 1.08 ms | 0.90 ms | pboss (-16.7%) |
-| Median p50 latency | 1.00 ms | 1.00 ms | tie |
+| Median requests/sec | 74125.6 | 72798.1 | pm2 (-1.8%) |
+| Mean requests/sec | 73892.0 | 72138.8 | pm2 (-2.4%) |
+| RPS stdev (variability) | 2935.3 | 1123.5 | pboss (-61.7%) |
+| Average latency (mean) | 0.70 ms | 0.84 ms | pm2 (+20.0%) |
+| Median p50 latency | 0.00 ms | 0.00 ms | — |
 | Median p90 latency | 1.00 ms | 1.00 ms | tie |
 | Median p95 latency | — | — | — |
 | Median p99 latency | 25.00 ms | 25.00 ms | tie |
 | Errors (total) | 0 | 0 | — |
 | Timeouts (total) | 0 | 0 | — |
 | Non-2xx (total) | 0 | 0 | — |
-| Avg CPU % of tree | 66.9 | 67.3 | pm2 (+0.6%) |
-| Median CPU % of tree | 68.0 | 68.0 | tie |
-| Peak CPU % of tree | 74.0 | 72.4 | pboss (-2.2%) |
-| Avg tree memory | 119.3 MB | 116.8 MB | pboss (-2.1%) |
-| Median tree memory | 119.3 MB | 116.9 MB | pboss (-2.1%) |
-| Cold startup (median) | 380.0 ms | 331.0 ms | pboss (-12.9%) |
+| Avg CPU % of tree | 67.0 | 66.9 | pboss (-0.1%) |
+| Median CPU % of tree | 68.0 | 67.6 | pboss (-0.6%) |
+| Peak CPU % of tree | 71.2 | 71.6 | pm2 (+0.6%) |
+| Avg tree memory | 119.5 MB | 117.9 MB | pboss (-1.3%) |
+| Median tree memory | 119.5 MB | 117.9 MB | pboss (-1.3%) |
+| Cold startup (median) | 392.0 ms | 339.0 ms | pboss (-13.5%) |
 
-_Runs: 5 pm2 / 5 pboss. RPS per run: pm2 [68,207, 68,514, 68,789, 69,645, 76,014] · pboss [71,103, 75,572, 71,714, 70,283, 73,384]_
+_Runs: 5 pm2 / 5 pboss. RPS per run: pm2 [76,194, 72,122, 74,126, 69,926, 77,093] · pboss [72,798, 71,441, 70,496, 72,901, 73,058]_
 
 ## Fork mode — load: 500 connections
 
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
-| Median requests/sec | 65634.7 | 63283.5 | pm2 (-3.6%) |
-| Mean requests/sec | 65440.0 | 64514.2 | pm2 (-1.4%) |
-| RPS stdev (variability) | 1810.0 | 3079.9 | pm2 (+70.2%) |
-| Average latency (mean) | 7.18 ms | 7.47 ms | pm2 (+4.0%) |
-| Median p50 latency | 5.00 ms | 6.00 ms | pm2 (+20.0%) |
-| Median p90 latency | 8.00 ms | 8.00 ms | tie |
+| Median requests/sec | 65352.0 | 64368.3 | pm2 (-1.5%) |
+| Mean requests/sec | 65326.3 | 64242.0 | pm2 (-1.7%) |
+| RPS stdev (variability) | 1741.1 | 777.7 | pboss (-55.3%) |
+| Average latency (mean) | 7.16 ms | 7.26 ms | pm2 (+1.4%) |
+| Median p50 latency | 5.00 ms | 5.00 ms | tie |
+| Median p90 latency | 7.00 ms | 8.00 ms | pm2 (+14.3%) |
 | Median p95 latency | — | — | — |
 | Median p99 latency | 33.00 ms | 33.00 ms | tie |
 | Errors (total) | 0 | 0 | — |
 | Timeouts (total) | 0 | 0 | — |
 | Non-2xx (total) | 0 | 0 | — |
-| Avg CPU % of tree | 64.1 | 64.0 | pboss (-0.2%) |
-| Median CPU % of tree | 64.4 | 64.4 | tie |
-| Peak CPU % of tree | 76.0 | 70.8 | pboss (-6.8%) |
-| Avg tree memory | 119.5 MB | 117.2 MB | pboss (-1.9%) |
-| Median tree memory | 119.5 MB | 117.2 MB | pboss (-1.9%) |
-| Cold startup (median) | 375.0 ms | 335.0 ms | pboss (-10.7%) |
+| Avg CPU % of tree | 63.9 | 63.4 | pboss (-0.8%) |
+| Median CPU % of tree | 64.0 | 63.6 | pboss (-0.6%) |
+| Peak CPU % of tree | 71.6 | 70.4 | pboss (-1.7%) |
+| Avg tree memory | 120.5 MB | 117.5 MB | pboss (-2.5%) |
+| Median tree memory | 120.5 MB | 117.5 MB | pboss (-2.5%) |
+| Cold startup (median) | 385.0 ms | 335.0 ms | pboss (-13.0%) |
 
-_Runs: 5 pm2 / 5 pboss. RPS per run: pm2 [67,463, 66,615, 64,702, 65,635, 62,785] · pboss [62,392, 62,539, 64,550, 69,807, 63,283]_
+_Runs: 5 pm2 / 5 pboss. RPS per run: pm2 [63,358, 66,995, 65,352, 63,816, 67,110] · pboss [64,934, 64,801, 62,977, 64,130, 64,368]_
 
 ## Cluster mode — 2 workers
 
@@ -154,14 +154,14 @@ them) — its native process-based cluster, `--instances N`.
 
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
-| Average requests/sec | — | 69856.5 | — |
-| Average latency (mean) | — | 0.95 ms | — |
-| Median p50 latency | — | 1.00 ms | — |
+| Average requests/sec | — | 73203.8 | — |
+| Average latency (mean) | — | 0.78 ms | — |
+| Median p50 latency | — | 0.00 ms | — |
 | Median p95 latency | — | — | — |
 | Median p99 latency | — | 25.00 ms | — |
-| Average CPU usage (tree) | — | 70.0 % | — |
-| Average memory (tree) | — | 164.7 MB | — |
-| Average cold startup | — | 460.0 ms | — |
+| Average CPU usage (tree) | — | 70.2 % | — |
+| Average memory (tree) | — | 165.3 MB | — |
+| Average cold startup | — | 458.6 ms | — |
 
 _Autocannon percentiles are integer-ms: a sub-millisecond p50 shows as
 0.00 — read the average-latency row for sub-ms precision, and p99 for
@@ -171,10 +171,10 @@ tail behavior._
 
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
-| Median requests/sec | — | 68210.4 | — |
-| Mean requests/sec | — | 68867.2 | — |
-| RPS stdev (variability) | — | 2738.8 | — |
-| Average latency (mean) | — | 0.05 ms | — |
+| Median requests/sec | — | 71479.2 | — |
+| Mean requests/sec | — | 72225.7 | — |
+| RPS stdev (variability) | — | 3256.4 | — |
+| Average latency (mean) | — | 0.04 ms | — |
 | Median p50 latency | — | 0.00 ms | — |
 | Median p90 latency | — | 0.00 ms | — |
 | Median p95 latency | — | — | — |
@@ -182,62 +182,62 @@ tail behavior._
 | Errors (total) | — | 0 | — |
 | Timeouts (total) | — | 0 | — |
 | Non-2xx (total) | — | 0 | — |
-| Avg CPU % of tree | — | 73.2 | — |
+| Avg CPU % of tree | — | 73.1 | — |
 | Median CPU % of tree | — | 74.0 | — |
-| Peak CPU % of tree | — | 83.2 | — |
-| Avg tree memory | — | 165.4 MB | — |
-| Median tree memory | — | 165.5 MB | — |
-| Cold startup (median) | — | 462.0 ms | — |
+| Peak CPU % of tree | — | 81.6 | — |
+| Avg tree memory | — | 166.2 MB | — |
+| Median tree memory | — | 166.3 MB | — |
+| Cold startup (median) | — | 467.0 ms | — |
 
-_Runs: 0 pm2 / 5 pboss. RPS per run: pm2 [] · pboss [72,873, 65,541, 67,748, 68,210, 69,964]_
+_Runs: 0 pm2 / 5 pboss. RPS per run: pm2 [] · pboss [71,479, 75,712, 70,028, 68,439, 75,471]_
 
 ### Cluster load: 100 connections
 
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
-| Median requests/sec | — | 70108.0 | — |
-| Mean requests/sec | — | 69856.5 | — |
-| RPS stdev (variability) | — | 4438.2 | — |
-| Average latency (mean) | — | 0.95 ms | — |
-| Median p50 latency | — | 1.00 ms | — |
+| Median requests/sec | — | 72748.0 | — |
+| Mean requests/sec | — | 73203.8 | — |
+| RPS stdev (variability) | — | 1685.8 | — |
+| Average latency (mean) | — | 0.78 ms | — |
+| Median p50 latency | — | 0.00 ms | — |
 | Median p90 latency | — | 1.00 ms | — |
 | Median p95 latency | — | — | — |
 | Median p99 latency | — | 25.00 ms | — |
 | Errors (total) | — | 0 | — |
 | Timeouts (total) | — | 0 | — |
 | Non-2xx (total) | — | 0 | — |
-| Avg CPU % of tree | — | 70.0 | — |
-| Median CPU % of tree | — | 70.4 | — |
-| Peak CPU % of tree | — | 77.6 | — |
-| Avg tree memory | — | 164.7 MB | — |
-| Median tree memory | — | 164.7 MB | — |
-| Cold startup (median) | — | 459.0 ms | — |
+| Avg CPU % of tree | — | 70.2 | — |
+| Median CPU % of tree | — | 70.8 | — |
+| Peak CPU % of tree | — | 81.6 | — |
+| Avg tree memory | — | 165.3 MB | — |
+| Median tree memory | — | 165.3 MB | — |
+| Cold startup (median) | — | 458.0 ms | — |
 
-_Runs: 0 pm2 / 5 pboss. RPS per run: pm2 [] · pboss [70,108, 65,862, 66,146, 70,325, 76,841]_
+_Runs: 0 pm2 / 5 pboss. RPS per run: pm2 [] · pboss [75,185, 72,748, 74,526, 70,933, 72,627]_
 
 ### Cluster load: 500 connections
 
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
-| Median requests/sec | — | 62368.5 | — |
-| Mean requests/sec | — | 62988.0 | — |
-| RPS stdev (variability) | — | 2637.1 | — |
-| Average latency (mean) | — | 7.58 ms | — |
-| Median p50 latency | — | 6.00 ms | — |
-| Median p90 latency | — | 9.00 ms | — |
+| Median requests/sec | — | 66690.7 | — |
+| Mean requests/sec | — | 66007.1 | — |
+| RPS stdev (variability) | — | 3118.5 | — |
+| Average latency (mean) | — | 6.95 ms | — |
+| Median p50 latency | — | 5.00 ms | — |
+| Median p90 latency | — | 8.00 ms | — |
 | Median p95 latency | — | — | — |
-| Median p99 latency | — | 34.00 ms | — |
+| Median p99 latency | — | 33.00 ms | — |
 | Errors (total) | — | 0 | — |
 | Timeouts (total) | — | 0 | — |
 | Non-2xx (total) | — | 0 | — |
-| Avg CPU % of tree | — | 66.0 | — |
-| Median CPU % of tree | — | 66.4 | — |
-| Peak CPU % of tree | — | 77.6 | — |
-| Avg tree memory | — | 164.8 MB | — |
-| Median tree memory | — | 164.8 MB | — |
-| Cold startup (median) | — | 456.0 ms | — |
+| Avg CPU % of tree | — | 66.2 | — |
+| Median CPU % of tree | — | 66.8 | — |
+| Peak CPU % of tree | — | 74.4 | — |
+| Avg tree memory | — | 166.0 MB | — |
+| Median tree memory | — | 166.0 MB | — |
+| Cold startup (median) | — | 458.0 ms | — |
 
-_Runs: 0 pm2 / 5 pboss. RPS per run: pm2 [] · pboss [63,335, 67,314, 60,527, 61,395, 62,369]_
+_Runs: 0 pm2 / 5 pboss. RPS per run: pm2 [] · pboss [69,645, 62,169, 68,041, 66,691, 63,491]_
 
 ## Startup time
 
@@ -246,12 +246,12 @@ included; median over the load runs). Warm = daemon already up.
 
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
-| Cold startup, fork (median of medians) | 375.0 ms | 331.0 ms | pboss (-11.7%) |
-| Warm startup, fork (median) | 166.0 ms | 114.0 ms | pboss (-31.3%) |
-| Warm startup, fork (max) | 200.0 ms | 177.0 ms | pboss (-11.5%) |
-| Cold startup, cluster (median of medians) | — | 459.0 ms | — |
-| Warm startup, cluster (median) | — | 172.0 ms | — |
-| Warm startup, cluster (max) | — | 296.0 ms | — |
+| Cold startup, fork (median of medians) | 385.0 ms | 337.0 ms | pboss (-12.5%) |
+| Warm startup, fork (median) | 192.0 ms | 117.0 ms | pboss (-39.1%) |
+| Warm startup, fork (max) | 206.0 ms | 127.0 ms | pboss (-38.3%) |
+| Cold startup, cluster (median of medians) | — | 458.0 ms | — |
+| Warm startup, cluster (median) | — | 158.0 ms | — |
+| Warm startup, cluster (max) | — | 282.0 ms | — |
 
 
 ## Idle daemon overhead (no application running)
@@ -259,16 +259,16 @@ included; median over the load runs). Warm = daemon already up.
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
 | Median CPU % | 0.0 | 0.0 | — |
-| Median memory | 68.9 MB | 64.5 MB | pboss (-6.3%) |
+| Median memory | 66.3 MB | 63.7 MB | pboss (-4.0%) |
 
 
 ## Crash recovery — fork (SIGKILL the server → `/health` back to 200)
 
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
-| Recovery (mean) | 68.9 ms | 66.9 ms | pboss (-2.9%) |
-| Recovery (median) | 68.0 ms | 67.0 ms | pboss (-1.5%) |
-| Recovery (max) | 74.0 ms | 68.0 ms | pboss (-8.1%) |
+| Recovery (mean) | 67.3 ms | 65.9 ms | pboss (-2.1%) |
+| Recovery (median) | 66.5 ms | 66.0 ms | pboss (-0.8%) |
+| Recovery (max) | 74.0 ms | 66.0 ms | pboss (-10.8%) |
 | Failed recoveries | 0 | 0 | — |
 
 
@@ -280,9 +280,9 @@ numbers are the manager's worker **replacement time** and whether
 
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
-| Worker respawn (mean) | — | 82.5 ms | — |
-| Worker respawn (median) | — | 82.5 ms | — |
-| Worker respawn (max) | — | 86.0 ms | — |
+| Worker respawn (mean) | — | 81.3 ms | — |
+| Worker respawn (median) | — | 81.5 ms | — |
+| Worker respawn (max) | — | 85.0 ms | — |
 | Failed replacements | — | 0 | — |
 | Health stayed up | — | 100.0 % of kills | — |
 
@@ -292,12 +292,12 @@ numbers are the manager's worker **replacement time** and whether
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
 | Restarts attempted | 50 | 50 | tie |
-| Restart time (median) | 257.5 ms | 122.0 ms | pboss (-52.6%) |
+| Restart time (median) | 255.0 ms | 129.0 ms | pboss (-49.4%) |
 | Failed restarts | 0 | 0 | — |
 | Orphaned processes after | 0 | 0 | — |
-| App RSS before | 35.3 MB | 35.2 MB | pboss (-0.4%) |
-| App RSS after | 35.2 MB | 35.1 MB | pboss (-0.2%) |
-| Memory growth (after − before) | -0.1 MB | -0.1 MB | — |
+| App RSS before | 35.3 MB | 35.3 MB | pboss (-0.1%) |
+| App RSS after | 35.3 MB | 35.2 MB | pboss (-0.4%) |
+| Memory growth (after − before) | 0.0 MB | -0.1 MB | — |
 
 
 ## Restart storm — cluster (restart must bring back ALL workers)
@@ -305,12 +305,12 @@ numbers are the manager's worker **replacement time** and whether
 | Metric | pm2 | pboss | Winner |
 | --- | --- | --- | --- |
 | Restarts attempted | — | 50 | — |
-| Restart time (median) | — | 178.5 ms | — |
+| Restart time (median) | — | 178.0 ms | — |
 | Failed restarts | — | 0 | — |
 | Orphaned processes after | — | 0 | — |
 | Workers' RSS before | — | 73.8 MB | — |
-| Workers' RSS after | — | 73.6 MB | — |
-| Memory growth (after − before) | — | -0.2 MB | — |
+| Workers' RSS after | — | 73.7 MB | — |
+| Memory growth (after − before) | — | -0.1 MB | — |
 
 
 ## Reproduce
