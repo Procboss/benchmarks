@@ -1,0 +1,11 @@
+{"manager":"pup","phase":"idle","durationSec":10}
+{"manager":"pup","phase":"warm-startup","mode":"fork","startupMs":273}
+{"manager":"pup","phase":"warm-startup","mode":"fork","startupMs":271}
+{"manager":"pup","phase":"warm-startup","mode":"fork","startupMs":275}
+{"manager":"pup","phase":"warm-startup","mode":"fork","startupMs":272}
+{"manager":"pup","phase":"warm-startup","mode":"fork","startupMs":273}
+{"manager":"pup","phase":"warm-startup","mode":"cluster","startupMs":1321}
+{"manager":"pup","phase":"warm-startup","mode":"cluster","startupMs":239}
+{"manager":"pup","phase":"warm-startup","mode":"cluster","startupMs":280}
+{"manager":"pup","phase":"warm-startup","mode":"cluster","startupMs":249}
+{"manager":"pup","phase":"warm-startup","mode":"cluster","startupMs":247}

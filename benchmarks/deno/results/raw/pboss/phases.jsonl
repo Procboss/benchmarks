@@ -1,0 +1,11 @@
+{"manager":"pboss","phase":"idle","durationSec":10}
+{"manager":"pboss","phase":"warm-startup","mode":"fork","startupMs":136}
+{"manager":"pboss","phase":"warm-startup","mode":"fork","startupMs":125}
+{"manager":"pboss","phase":"warm-startup","mode":"fork","startupMs":122}
+{"manager":"pboss","phase":"warm-startup","mode":"fork","startupMs":170}
+{"manager":"pboss","phase":"warm-startup","mode":"fork","startupMs":187}
+{"manager":"pboss","phase":"warm-startup","mode":"cluster","startupMs":363}
+{"manager":"pboss","phase":"warm-startup","mode":"cluster","startupMs":170}
+{"manager":"pboss","phase":"warm-startup","mode":"cluster","startupMs":176}
+{"manager":"pboss","phase":"warm-startup","mode":"cluster","startupMs":203}
+{"manager":"pboss","phase":"warm-startup","mode":"cluster","startupMs":191}

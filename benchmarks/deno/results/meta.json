@@ -1,0 +1,46 @@
+{
+  "startedAt": "2026-10-11T05:55:43.802Z",
+  "suite": "deno",
+  "machine": {
+    "os": "Linux",
+    "kernel": "5.10.134-013.15.kangaroo.al8.x86_64",
+    "cpu": "Intel(R) Xeon(R) Processor",
+    "cores": 2,
+    "memMb": 4041
+  },
+  "versions": {
+    "deno": "2.9.7",
+    "pup": "1.0.4",
+    "pboss": "v1.8.0"
+  },
+  "config": {
+    "profile": "standard",
+    "port": 3000,
+    "connections": [
+      10,
+      100,
+      500
+    ],
+    "durationSec": 60,
+    "warmupSec": 10,
+    "repeats": 5,
+    "sampleIntervalMs": 500,
+    "crashRepeats": 10,
+    "stormRestarts": 50,
+    "modes": [
+      "fork",
+      "cluster"
+    ],
+    "clusterInstances": 2,
+    "clusterSupport": {
+      "pboss": {
+        "supported": true,
+        "mechanism": "process-based cluster: N workers binding the SAME port through SO_REUSEPORT (--instances N)"
+      },
+      "pup": {
+        "supported": true,
+        "mechanism": "built-in load balancer on the common port over N backend processes (cluster{instances, commonPort, startPort})"
+      }
+    }
+  }
+}

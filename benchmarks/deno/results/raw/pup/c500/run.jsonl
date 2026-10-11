@@ -1,0 +1,5 @@
+{"manager":"pup","repeat":1,"connections":500,"duration":60,"mode":"fork","workers":1,"coldStartupMs":1058,"startedAt":"2026-10-11T06:24:00Z","daemonPid":29598,"appPid":29671}
+{"manager":"pup","repeat":2,"connections":500,"duration":60,"mode":"fork","workers":1,"coldStartupMs":1130,"startedAt":"2026-10-11T06:27:43Z","daemonPid":30375,"appPid":30395}
+{"manager":"pup","repeat":3,"connections":500,"duration":60,"mode":"fork","workers":1,"coldStartupMs":1072,"startedAt":"2026-10-11T06:29:07Z","daemonPid":30827,"appPid":30906}
+{"manager":"pup","repeat":4,"connections":500,"duration":60,"mode":"fork","workers":1,"coldStartupMs":1142,"startedAt":"2026-10-11T06:32:50Z","daemonPid":31598,"appPid":31619}
+{"manager":"pup","repeat":5,"connections":500,"duration":60,"mode":"fork","workers":1,"coldStartupMs":1044,"startedAt":"2026-10-11T06:34:13Z","daemonPid":32031,"appPid":32110}

@@ -1,0 +1,17 @@
+{
+  "name": "pboss-deno-benchmark",
+  "version": "1.0.0",
+  "private": true,
+  "description": "pboss vs pup managing the same Deno HTTP server — fork and cluster modes: throughput, latency, CPU, memory, startup, crash recovery. See README.md for methodology and results.",
+  "type": "module",
+  "scripts": {
+    "bench": "bash scripts/benchmark.sh",
+    "smoke": "BENCH_PROFILE=smoke bash scripts/benchmark.sh",
+    "crash": "bash scripts/crash-recovery.sh",
+    "report": "node scripts/summarize.mjs",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "autocannon": "^7.15.0"
+  }
+}

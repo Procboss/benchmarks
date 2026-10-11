@@ -1,0 +1,5 @@
+{"manager":"pup","repeat":1,"connections":10,"duration":60,"mode":"cluster","workers":2,"coldStartupMs":1058,"startedAt":"2026-10-11T06:36:52Z","daemonPid":303,"appPid":384}
+{"manager":"pup","repeat":2,"connections":10,"duration":60,"mode":"cluster","workers":2,"coldStartupMs":1161,"startedAt":"2026-10-11T06:40:36Z","daemonPid":1170,"appPid":1192}
+{"manager":"pup","repeat":3,"connections":10,"duration":60,"mode":"cluster","workers":2,"coldStartupMs":1075,"startedAt":"2026-10-11T06:41:59Z","daemonPid":1634,"appPid":1715}
+{"manager":"pup","repeat":4,"connections":10,"duration":60,"mode":"cluster","workers":2,"coldStartupMs":1164,"startedAt":"2026-10-11T06:45:45Z","daemonPid":2462,"appPid":2484}
+{"manager":"pup","repeat":5,"connections":10,"duration":60,"mode":"cluster","workers":2,"coldStartupMs":1072,"startedAt":"2026-10-11T06:47:07Z","daemonPid":2890,"appPid":2975}

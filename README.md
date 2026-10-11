@@ -10,6 +10,7 @@ it.
 |---|---|---|
 | [`benchmarks/bun`](benchmarks/bun) | pboss vs **pm2** managing the same Bun HTTP server, in **fork mode** (both managers) and **cluster mode** — **pboss only**: pm2 cannot cluster a Bun app (`-i N --interpreter bun` silently downgrades to fork mode), so it is recorded as **not supported** there, never measured under a cluster label. pboss clusters with its native `--instances N` (N Bun workers on one `SO_REUSEPORT` port): throughput, latency percentiles, CPU/memory of the whole process tree, cold & warm startup, idle daemon overhead, SIGKILL crash recovery (fork: server respawn · cluster: worker respawn + availability), and a 50-restart storm | [results](benchmarks/bun/results/REPORT.md) · [HTML](benchmarks/bun/results/REPORT.html) |
 | [`benchmarks/node`](benchmarks/node) | pboss vs **pm2** managing the same Node HTTP server — the suite where **BOTH managers cluster natively through `node:cluster`** (pm2 `-i N` is true cluster mode with the daemon as primary; pboss `--instances N` spawns its supervised node:cluster wrapper primary), so the full fork + cluster matrix runs for both: the same throughput, latency, CPU/memory, startup, crash-recovery and storm battery as the bun suite | [results](benchmarks/node/results/REPORT.md) · [HTML](benchmarks/node/results/REPORT.html) |
+| [`benchmarks/deno`](benchmarks/deno) | pboss vs **[pup](https://github.com/hexagon/pup)** managing the same Deno HTTP server — for Deno apps **both managers cluster natively, each with its own model**: pboss `--instances N` (N workers sharing one `SO_REUSEPORT` port, kernel-balanced) vs pup `cluster{instances, commonPort, startPort}` (its built-in load balancer fronting N backend processes). The full fork + cluster matrix — throughput, latency, CPU/memory, startup, idle overhead, SIGKILL crash recovery, worker respawn + availability, and a 50-restart storm — with both managers at their **out-of-the-box** restart policies | [results](benchmarks/deno/results/REPORT.md) · [HTML](benchmarks/deno/results/REPORT.html) |
 
 More runtimes and competitors will land as sibling folders
 (`benchmarks/<runtime>`), each self-contained with its own scripts, tests,
@@ -21,7 +22,10 @@ and `results/`.
   difference between the two columns of any table is which process manager
   supervises the workload. This measures the *overhead of managing*, not the
   raw performance of the runtime underneath. Cluster comparisons keep the
-  worker count and the port-sharing mechanism identical too.
+  worker count and the client-facing port identical; where the two managers'
+  cluster *models* differ (deno: pboss's kernel SO_REUSEPORT vs pup's
+  userland load balancer) each runs its own native model and the report says
+  so — that difference IS the manager.
 - **Cluster mode is only claimed where it genuinely exists.** pm2's cluster
   mode is `node:cluster` inside its daemon — for Node apps it is real and
   measured head-to-head; for Bun apps it cannot wrap a non-Node interpreter
@@ -42,8 +46,8 @@ and `results/`.
 ## Running a suite
 
 ```bash
-cd benchmarks/bun        # or benchmarks/node
-npm install            # the suite's tools (autocannon, pm2) — pinned locally
+cd benchmarks/bun        # or benchmarks/node, or benchmarks/deno
+npm install            # the suite's tools (autocannon, …) — pinned locally
 BENCH_PROFILE=smoke bash scripts/benchmark.sh   # verify the harness fast
 bash scripts/benchmark.sh                       # the standard profile
 ```
